@@ -8,5 +8,5 @@ precision_criterion: 0.005
 model: norm_prod_lg_A_gamma
 mu_lg_A: -20 -10
 mu_gam: 0 10
-sig_lg_A: 0 10
-sig_gam: 0 10
+sig_lg_A: 0 20
+sig_gam: 0 20
