@@ -59,7 +59,7 @@ def parse_commandline():
 
   return opts
 
-class HyperResult(results.EnterpriseWarpResult):
+class HyperResult(results.BilbyWarpResult):
 
   def __init__(self, opts):
     super(HyperResult, self).__init__(opts)
@@ -84,29 +84,6 @@ class HyperResult(results.EnterpriseWarpResult):
       self.results.append(self.result)
       self.chains.append(self.chain)
       self.log_zs.append(self.result.log_evidence)
-
-  def get_chain_file_name(self):
-      label = os.path.basename(os.path.normpath(self.params.out))
-      if os.path.isfile(self.outdir + '/' + label + '_result.json'):
-        self.chain_file = self.outdir + '/' + label + '_result.json'
-      else:
-        self.chain_file = None
-        print('Could not find chain file in ',self.outdir)
-
-      if self.opts.info and self.chain_file is not None:
-        print('Available chain file ', self.chain_file, '(',
-              int(np.round(os.path.getsize(self.chain_file)/1e6)), ' Mb)')
-
-  def load_chains(self):
-    """ Loading Bilby result """
-    try:
-      self.result = bilby.result.read_in_result(filename=self.chain_file)
-    except:
-      print('Could not load file ', self.chain_file)
-      return False
-    self.chain = self.result.posterior
-    self.chain_burn = self.chain
-    return True
 
   def standardize_chain_for_rn_hyper_pe(self):
     for key in self.chain.keys():
