@@ -34,6 +34,29 @@ class PPTADR2Models(StandardModels):
       "gwb_gamma_prior": "uniform",
     })
 
+  def spin_noise(self,option="powerlaw"):
+    """
+    Here we modify the same enterprise_warp.enterprise_models function
+    to add a Gaussian prior for power-law parameters
+    """
+    option, nfreqs = self.option_nfreqs(option, sel_func_name=None)
+    if option=="gpriorpl":
+      log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
+      gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
+    else:
+      log10_A = parameter.Uniform(self.params.sn_lgA[0],self.params.sn_lgA[1])
+      gamma = parameter.Uniform(self.params.sn_gamma[0],self.params.sn_gamma[1])
+    if option=="powerlaw" or option=="gpriorpl":
+      pl = utils.powerlaw(log10_A=log10_A, gamma=gamma, \
+                          components=self.params.red_general_nfouriercomp)
+    elif option=="turnover":
+      fc = parameter.Uniform(self.params.sn_fc[0],self.params.sn_fc[1])
+      pl = powerlaw_bpl(log10_A=log10_A, gamma=gamma, fc=fc,
+                        components=self.params.red_general_nfouriercomp)
+    sn = gp_signals.FourierBasisGP(spectrum=pl, Tspan=self.params.Tspan,
+                                   name='red_noise', components=nfreqs)
+    return sn
+
   def dm_annual(self, option="default"):
     if option=="default": idx = 2
     return dm_annual_signal(idx=idx)

@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_to_rcl
 #SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_to_rcl_%A_%a.out
-#SBATCH --ntasks=64
-#SBATCH --time=0-3
-#SBATCH --mem-per-cpu=1G
-#SBATCH --tmp=4G
-#SBATCH --array=1,24
+#SBATCH --ntasks=128
+#SBATCH --time=0-5
+#SBATCH --mem-per-cpu=2G
+#SBATCH --tmp=6G
+#SBATCH --array=0
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]

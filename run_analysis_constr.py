@@ -40,7 +40,7 @@ custom = ppta_dr2_models.PPTADR2Models
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=custom)
 pta = enterprise_warp.init_pta(params)
 
-if params.sampler == 'ptmcmcsampler':
+if False: #params.sampler == 'ptmcmcsampler':
     super_model = hypermodel.HyperModel(pta)
     print('Super model parameters: ', super_model.params)
     print('Output directory: ', params.output_dir)
@@ -85,6 +85,14 @@ if params.sampler == 'ptmcmcsampler':
       print('Preparations for the MPI run are complete - now set \
              opts.mpi_regime to 2 and enjoy the speed!')
 else:
+    # Setting up initial informed sample for Bilby (to help with 100+
+    # model parameters and avoild ln_likelihood = -inf)
+    super_model = hypermodel.HyperModel(pta)
+    noisedict = get_noise_dict(psrlist=[pp.name for pp in params.psrs],
+                               noisefiles=params.noisefiles)
+    x0 = super_model.informed_sample(noisedict)
+    params.sampler_kwargs['p0'] = x0
+
     regular_priors = bilby_warp.get_bilby_prior_dict(pta[0])
     regular_parameters = regular_priors.keys()
     gc = GammaConstraint(regular_parameters)
