@@ -1,11 +1,10 @@
-paramfile_label: x1_rnp210607_bmc
+paramfile_label: pe_rnp210607_bmc
 datadir: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/
 out: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/
 overwrite: True
-array_analysis: True
-psrlist: /home/bgonchar/pta_gwb_priors/params/pulsar_set_x_1.dat
+array_analysis: False
 sampler: bilby_mcmc
-npool: 128
+npool: 1
 efac: -1
 equad: -1
 ecorr: -1
@@ -14,5 +13,3 @@ sn_gamma: 3.20 1.49
 noisefiles: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/start_noisefiles/snall/
 {0}
 noise_model_file: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/noise_models/ppta_dr2_snall_rngauss_20210727.json
-{1}
-noise_model_file: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/noise_models/ppta_dr2_snall_common_pl_fixedgamma_rngauss_30_nf_20210727.json

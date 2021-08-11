@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_snall_pe_cpl_varsl_30nf_set31_const_1
 #SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_snall_pe_cpl_varslope_30_nf_set_3_1_const_1_%A_%a.out
-#SBATCH --ntasks=4
-#SBATCH --time=0-23
+#SBATCH --ntasks=2
+#SBATCH --time=1-23
 #SBATCH --mem-per-cpu=2G
 #SBATCH --tmp=6G
 #SBATCH --array=0

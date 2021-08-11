@@ -1,12 +1,11 @@
-paramfile_label: constr_bmcmc_3_1
+paramfile_label: single_constr_bmcmc
 datadir: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/
 out: /fred/oz002/bgoncharov/pta_gwb_priors_out/dr2_timing_20200607/
 overwrite: True
-array_analysis: True
-psrlist: /home/bgonchar/pta_gwb_priors/params/pulsar_set_3_1.dat
+array_analysis: False
 sampler: bilby_mcmc
 nsamples: 100
-npool: 2
+npool: 4
 efac: -1
 equad: -1
 ecorr: -1

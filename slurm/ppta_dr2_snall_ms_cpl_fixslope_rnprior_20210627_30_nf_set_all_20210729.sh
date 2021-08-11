@@ -3,8 +3,8 @@
 #SBATCH --output=/fred/oz002/bgoncharov/correlated_noise_logs/ppta_snall_ms_cpl_fixslope_rnprior_20210627_30_nf_set_all_bmc_%A_%a.out
 #SBATCH --ntasks=4
 #SBATCH --time=1-21
-#SBATCH --mem-per-cpu=6G
-#SBATCH --tmp=6G
+#SBATCH --mem-per-cpu=8G
+#SBATCH --tmp=8G
 #SBATCH --array=0
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"

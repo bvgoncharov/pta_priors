@@ -87,11 +87,11 @@ if False: #params.sampler == 'ptmcmcsampler':
 else:
     # Setting up initial informed sample for Bilby (to help with 100+
     # model parameters and avoild ln_likelihood = -inf)
-    super_model = hypermodel.HyperModel(pta)
-    noisedict = get_noise_dict(psrlist=[pp.name for pp in params.psrs],
-                               noisefiles=params.noisefiles)
-    x0 = super_model.informed_sample(noisedict)
-    params.sampler_kwargs['p0'] = x0
+    #super_model = hypermodel.HyperModel(pta)
+    #noisedict = get_noise_dict(psrlist=[pp.name for pp in params.psrs],
+    #                           noisefiles=params.noisefiles)
+    #x0 = super_model.informed_sample(noisedict)
+    #params.sampler_kwargs['p0'] = x0
 
     regular_priors = bilby_warp.get_bilby_prior_dict(pta[0])
     regular_parameters = regular_priors.keys()
@@ -107,6 +107,7 @@ else:
                         outdir=params.output_dir, label=params.label,
                         sampler=params.sampler, **params.sampler_kwargs)
     else:
+      import ipdb; ipdb.set_trace()
       print('Preparations for the MPI run are complete - now set \
              opts.mpi_regime to 2 and enjoy the speed!')
 

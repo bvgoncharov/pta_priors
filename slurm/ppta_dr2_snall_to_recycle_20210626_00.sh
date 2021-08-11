@@ -3,8 +3,8 @@
 #SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_to_rcl_%A_%a.out
 #SBATCH --ntasks=128
 #SBATCH --time=0-5
-#SBATCH --mem-per-cpu=2G
-#SBATCH --tmp=6G
+#SBATCH --mem-per-cpu=3G
+#SBATCH --tmp=8G
 #SBATCH --array=0
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"

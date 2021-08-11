@@ -4,7 +4,7 @@ out: /fred/oz002/bgoncharov/pta_gwb_priors_out/dr2_timing_20200607/
 overwrite: True
 array_analysis: True
 sampler: bilby_mcmc
-npool: 4
+npool: 1
 efac: -1
 equad: -1
 ecorr: -1

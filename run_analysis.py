@@ -66,6 +66,14 @@ if params.sampler == 'ptmcmcsampler':
              opts.mpi_regime to 2 and enjoy the speed!')
 else:
     priors = bilby_warp.get_bilby_prior_dict(pta[0])
+    for pkey, prior in priors.items():
+      if type(prior) == bilby.core.prior.analytical.Normal:
+        if 'gamma' in pkey:
+          priors[pkey].minimum = 0.
+          priors[pkey].maximum = 10.
+        elif 'log10_A' in pkey:
+          priors[pkey].minimum = -20.
+          priors[pkey].maximum = -6.
     parameters = dict.fromkeys(priors.keys())
     likelihood = bilby_warp.PTABilbyLikelihood(pta[0],parameters)
     label = os.path.basename(os.path.normpath(params.out))
