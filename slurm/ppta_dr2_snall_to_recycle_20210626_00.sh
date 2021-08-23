@@ -14,6 +14,8 @@ then
     module load numpy/1.16.3-python-2.7.14
 fi
 
+export OMP_NUM_THREADS=1
+
 srun echo $TEMPO2
 srun echo $TEMPO2_CLOCK_DIR
 srun python /home/bgonchar/pta_gwb_priors/run_analysis.py --prfile "/home/bgonchar/pta_gwb_priors/params/ppta_dr2_snall_to_recycle_20210626.dat" --num $SLURM_ARRAY_TASK_ID

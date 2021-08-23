@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=p_ms_cpl_fixsl_30nf_rnp20210627_x1_bmc
 #SBATCH --output=/fred/oz002/bgoncharov/correlated_noise_logs/ppta_snall_ms_cpl_fixslope_rnprior_20210627_30_nf_set_x_1_bmc_%A_%a.out
-#SBATCH --ntasks=128
-#SBATCH --time=0-5
+#SBATCH --ntasks=32
+#SBATCH --time=0-1
 #SBATCH --mem-per-cpu=5G
 #SBATCH --tmp=8G
 #SBATCH --array=0
@@ -13,6 +13,8 @@ then
     echo "$pyv"
     module load numpy/1.16.3-python-2.7.14
 fi
+
+export OMP_NUM_THREADS=1
 
 srun echo $TEMPO2
 srun echo $TEMPO2_CLOCK_DIR

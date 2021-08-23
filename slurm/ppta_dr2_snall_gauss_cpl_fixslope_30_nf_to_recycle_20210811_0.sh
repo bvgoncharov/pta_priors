@@ -5,7 +5,7 @@
 #SBATCH --time=0-4
 #SBATCH --mem-per-cpu=1G
 #SBATCH --tmp=4G
-#SBATCH --array=13,20
+#SBATCH --array=13
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]
@@ -13,6 +13,8 @@ then
     echo "$pyv"
     module load numpy/1.16.3-python-2.7.14
 fi
+
+export OMP_NUM_THREADS=1
 
 srun echo $TEMPO2
 srun echo $TEMPO2_CLOCK_DIR

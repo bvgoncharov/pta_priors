@@ -107,9 +107,9 @@ else:
                         outdir=params.output_dir, label=params.label,
                         sampler=params.sampler, **params.sampler_kwargs)
     else:
-      import ipdb; ipdb.set_trace()
       print('Preparations for the MPI run are complete - now set \
              opts.mpi_regime to 2 and enjoy the speed!')
+      exit()
 
 with open(params.output_dir + "completed.txt", "a") as myfile:
   myfile.write("completed\n")
