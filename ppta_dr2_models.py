@@ -1,4 +1,5 @@
 import scipy
+import pickle
 import warnings
 import numpy as np
 import enterprise.constants as const
@@ -32,17 +33,28 @@ class PPTADR2Models(StandardModels):
       "event_j1603_t0": [53710., 54070.],
       "f2_range": 1e-6,
       "gwb_gamma_prior": "uniform",
+      "kdesn_file": "none",
     })
 
   def spin_noise(self,option="powerlaw"):
     """
     Here we modify the same enterprise_warp.enterprise_models function
-    to add a Gaussian prior for power-law parameters
+    to add a Gaussian and KDE priors for power-law parameters
     """
     option, nfreqs = self.option_nfreqs(option, sel_func_name=None)
+
+    if option=="kdepl":
+      name = "sn_kde"
+    else:
+      name = "red_noise"
+
     if option=="gpriorpl":
       log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
       gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
+    elif option=="kdepl":
+      with open(self.params.kdesn_file, 'rb') as kdef:
+        kdesn = pickle.load(kdef)
+      log10_A_gamma = KDE(kdesn, size=2)
     else:
       log10_A = parameter.Uniform(self.params.sn_lgA[0],self.params.sn_lgA[1])
       gamma = parameter.Uniform(self.params.sn_gamma[0],self.params.sn_gamma[1])
@@ -53,8 +65,10 @@ class PPTADR2Models(StandardModels):
       fc = parameter.Uniform(self.params.sn_fc[0],self.params.sn_fc[1])
       pl = powerlaw_bpl(log10_A=log10_A, gamma=gamma, fc=fc,
                         components=self.params.red_general_nfouriercomp)
+    elif option=="kdepl":
+      pl = powerlaw_kde(log10_A_gamma = log10_A_gamma)
     sn = gp_signals.FourierBasisGP(spectrum=pl, Tspan=self.params.Tspan,
-                                   name='red_noise', components=nfreqs)
+                                   name=name, components=nfreqs)
     return sn
 
   def dm_annual(self, option="default"):
@@ -400,6 +414,17 @@ class PPTADR2Models(StandardModels):
 # PPTA DR2 signal models
 
 @signal_base.function
+def powerlaw_kde(f, log10_A_gamma=[-16, 5], components=2):
+    """
+    Standard power-law, formatted for KDE sampling
+    """
+    df = np.diff(np.concatenate((np.array([0]), f[::components])))
+    return ((10 ** log10_A_gamma[0]) ** 2 / 12.0 / np.pi ** 2 * \
+           const.fyr ** (log10_A_gamma[1] - 3) * f ** (-log10_A_gamma[1]) * \
+           np.repeat(df, components))
+
+
+@signal_base.function
 def fd_system(freqs, slope = 1e-7, idx_fd = 1):
     freq_median = freqs - np.median(freqs)
     return np.sign(freq_median)**(idx_fd + 1) * slope * freq_median**idx_fd
@@ -611,6 +636,64 @@ def UniformMask(pmin, pmax, mask):
                                        mask=mask)
 
     return UniformMask
+
+
+# KDE prior object
+
+def KDEPrior(value, kde_object):
+    """Prior function for Normal parameters."""
+
+    # we let scipy.stats handle parameter errors
+    # this code handles vectors correctly, if mu and sigma are scalars,
+    # if mu and sigma are vectors with len(value) = len(mu) = len(sigma),
+    # or if len(value) = len(mu) and sigma is len(value) x len(value)
+    return np.exp(kde_object.score(np.expand_dims(value, axis=0)))
+
+
+def KDESampler(kde_object, size=None):
+    """Sampling function for Normal parameters."""
+
+    #if np.ndim(mu) == 1 and len(mu) != size:
+    #    raise ValueError("Size mismatch between Parameter size and distribution arguments")
+
+    # we let scipy.stats handle all other errors
+    # this code handles vectors correctly, if mu and sigma are scalars,
+    # if mu and sigma are vectors with len(value) = len(mu) = len(sigma),
+    # or if len(value) = len(mu) and sigma is len(value) x len(value);
+    # note that scipy.stats.multivariate_normal.rvs infers parameter
+    # size from mu and sigma, so if these are vectors we pass size=None;
+    # otherwise we'd get multiple copies of a jointly-normal vector
+    return kde_object.sample(n_samples=1)[0,:]
+
+
+def KDE(kde_object=None, size=None):
+    """Class factory for Normal parameters (with pdf(x) ~ N(``mu``,``sigma``)).
+    Handles vectors correctly if ``size == len(mu) == len(sigma)``,
+    in which case ``sigma`` is taken as the sqrt of the diagonal
+    of the covariance matrix; ``sigma`` can also be given passed
+    as the ``size`` x ``size`` covariance matrix.
+    :param mu:    center of normal distribution
+    :param sigma: standard deviation of normal distribution
+    :param size:  length for vector parameter
+    :return:      ``Normal`` parameter class
+    """
+
+    #def KDEPrior(value, kde_object):
+    #    """Prior function for Normal parameters."""
+    #
+    #    # we let scipy.stats handle parameter errors
+    #    # this code handles vectors correctly, if mu and sigma are scalars,
+    #    # if mu and sigma are vectors with len(value) = len(mu) = len(sigma),
+    #    # or if len(value) = len(mu) and sigma is len(value) x len(value)
+    #    return np.exp(kde_object.score(value))
+
+    class KDE(parameter.Parameter):
+        _size = size
+        _prior = parameter.Function(KDEPrior, kde_object=kde_object)
+        _sampler = staticmethod(KDESampler)
+        _typename = parameter._argrepr("KDE", kde_object=kde_object)
+
+    return KDE
 
 
 # Constraint

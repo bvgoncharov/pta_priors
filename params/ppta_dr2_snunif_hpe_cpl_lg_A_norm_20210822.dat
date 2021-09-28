@@ -9,4 +9,4 @@ max_samples_from_measurement: 1000
 model: Norm_lg_A
 par_suffix: gw
 mu_lg_A: -20. -10.
-sig_lg_A: -20. -10.
+sig_lg_A: 0. 20.

@@ -1,5 +1,6 @@
 import optparse
 import numpy as np
+from scipy.stats import multivariate_normal
 from bilby.core.prior import Uniform, DeltaFunction
 
 from enterprise_warp.enterprise_models import StandardModels
@@ -10,6 +11,26 @@ from enterprise_warp import results
 # ---------------------------------------------------------------------------- #
 
 # Joint hyper-priors, names to be used for "model: " in parameter files
+
+class Norm_biv_trunc_lg_A_gamma(object):
+  """ Joint normal prior with covariance between A and gamma """
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
+               low_lg_A, high_lg_A, low_gam, high_gam):
+    return norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, \
+                                     sig_gam, rho_cov, low_lg_A, high_lg_A, \
+                                     low_gam, high_gam, suffix=self.suffix)
+
+class Norm_biv_lg_A_gamma(object):
+  """ Joint normal prior with covariance between A and gamma """
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov):
+    return norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
+           rho_cov, suffix=self.suffix)
 
 class Norm_prod_lg_A_gamma(object):
   """ Assuming independent priors, no covariance between A and gamma """
@@ -69,6 +90,51 @@ def norm_lg_A(dataset, mu_lg_A, sig_lg_A, suffix='red_noise'):
 def norm_gamma(dataset, mu_gam, sig_gam, suffix='red_noise'):
   return norm(dataset, suffix+'_gamma', mu_gam, sig_gam)
 
+def norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
+                        suffix='red_noise'):
+  return (2*np.pi*sig_lg_A*sig_gam*np.sqrt(1 - rho_cov**2))**(-1) * \
+         np.exp(-1./2./(1-rho_cov**2)*( \
+         inorm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A)**2 - 2*rho_cov* \
+         inorm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A) * \
+         inorm(dataset, suffix+'_gamma', mu_gam, sig_gam) + \
+         inorm(dataset, suffix+'_gamma', mu_gam, sig_gam)**2 ) )
+
+def norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
+                              rho_cov, low_lg_A, high_lg_A, low_gam, high_gam, \
+                              suffix='red_noise'):
+  # Truncating the bivariate normal distribution that we fit for by creating a mask for posterior samples passed to the prior here. If the data point is outside of prior boundaries, we suggest it as "impossible", and set the probability for this point to be zero. 
+  #mask_low_lg_A = dataset[suffix+'_log10_A'] > low_lg_A
+  #mask_high_lg_A = dataset[suffix+'_log10_A'] < high_lg_A
+  #mask_low_gam = dataset[suffix+'_gamma'] > low_gam
+  #mask_high_gam = dataset[suffix+'_gamma'] < high_gam
+  # This should be true by default, because we do not have any posterior samples outside of boundaries. So, we comment out this code and only renormalize probability based on boundaries.
+  # P. S. Hyper-priors should also have the same boundaries.
+
+  # Normalization
+  cov_term = rho_cov*sig_lg_A*sig_gam
+
+  # Handling some internal Bilby samples that returned as single-value arrays
+  mu_lg_A = float(mu_lg_A)
+  mu_gam = float(mu_gam)
+  sig_lg_A = float(sig_lg_A)
+  cov_term = float(cov_term)
+  sig_gam = float(sig_gam)
+
+  rv = multivariate_normal([mu_lg_A, mu_gam], \
+                           [[sig_lg_A**2, cov_term],[cov_term, sig_gam**2]], \
+                           allow_singular = True)
+  vhh, vlh, vhl, vll = rv.cdf(np.array([[[high_lg_A, high_gam],[low_lg_A, high_gam],[high_lg_A, low_gam],[low_lg_A, low_gam]]]))
+  area_truncated = vhh - vlh - vhl + vll
+
+  #if np.sum(norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, suffix=suffix) * mask_low_lg_A * mask_high_lg_A * mask_low_gam * mask_high_gam / area_truncated == 0) > 0:
+  #  import ipdb; ipdb.set_trace()
+  # Total
+  return norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, suffix=suffix) / area_truncated # * mask_low_lg_A * mask_high_lg_A * mask_low_gam * mask_high_gam
+
+def inorm(dataset, key, mu, sigma):
+  """ Helper function for norm_biv() """
+  return (dataset[key] - mu) / sigma
+
 #def norm_prod_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
 #                         suffix = 'red_noise'):
 #  """ Assuming independent priors, no covariance between A and gamma """
@@ -111,6 +177,24 @@ def deltafunc_gamma(dataset, gam, suffix='red_noise'):
 # ---------------------------------------------------------------------------- #
 
 # For normal priors we use uniform hyper-priors
+
+def hp_Norm_biv_trunc_lg_A_gamma(hip):
+  """ hip is instance of HierarchicalInferenceParams """
+  truncation_bounds = dict(low_lg_A = DeltaFunction(hip.low_lg_A, \
+                           'low_lg_A', '$\log_{10}A_\mathrm{low}$'), \
+                           high_lg_A = DeltaFunction(hip.high_lg_A, \
+                           'high_lg_A', '$\log_{10}A_\mathrm{high}$'), \
+                           low_gam = DeltaFunction(hip.low_gam, \
+                           'low_gam', '$\gamma_\mathrm{low}$'), \
+                           high_gam = DeltaFunction(hip.high_gam, \
+                           'high_gam', '$\gamma_\mathrm{high}$'))
+  return {**hp_Norm_biv_lg_A_gamma(hip), **truncation_bounds}
+
+def hp_Norm_biv_lg_A_gamma(hip):
+  """ hip is instance of HierarchicalInferenceParams """
+  rho_cov = dict(rho_cov = Uniform(hip.rho_cov[0], hip.rho_cov[1], \
+              'rho_cov', r'$\rho$'))
+  return {**hp_Norm_lg_A(hip), **hp_Norm_gamma(hip), **rho_cov}
 
 def hp_Norm_lg_A(hip):
   """ hip is instance of HierarchicalInferenceParams """
@@ -180,6 +264,7 @@ class HierarchicalInferenceParams(StandardModels):
       "sig_lg_A": [0., 10.],
       "mu_gam": [0., 10.],
       "sig_gam": [0., 10.],
+      "rho_cov": [0., 1.],
       "low_lg_A": [-20., -10.],
       "high_lg_A": [-20., -10.],
       "low_gam": [0., 10.],
@@ -221,16 +306,18 @@ class HyperResult(results.BilbyWarpResult):
       self.log_zs.append(self.result.log_evidence)
 
   def standardize_chain_for_rn_hyper_pe(self):
-    for key in self.chain.keys():
+    for key in self.result.posterior.keys():
       if self.suffix not in key and \
          'log_likelihood' not in key and \
          'log_prior' not in key and \
          'prior' not in key:
-        del self.chain[key]
+        del self.result.posterior[key]
       elif self.suffix+'_gamma' in key:
-        self.chain[self.suffix+'_gamma'] = self.chain.pop(key)
+        self.result.posterior[self.suffix+'_gamma'] = \
+                              self.result.posterior.pop(key)
       elif self.suffix+'_log10_A' in key:
-        self.chain[self.suffix+'_log10_A'] = self.chain.pop(key)
+        self.result.posterior[self.suffix+'_log10_A'] = \
+                              self.result.posterior.pop(key)
 
 def parse_commandline():
   """

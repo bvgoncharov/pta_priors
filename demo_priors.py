@@ -12,7 +12,6 @@ def draw_from_normal(mu_x, sigma_x, mu_y, sigma_y):
 
 def normal_kde(xx, yy, x_min, x_max, y_min, y_max):
   k = kde.gaussian_kde([xx,yy])
-  import ipdb; ipdb.set_trace()
   nbins = 300
   xi, yi = np.mgrid[x_min:x_max:nbins*1j, y_min:y_max:nbins*1j]
   zi = k(np.vstack([xi.flatten(), yi.flatten()]))
@@ -29,6 +28,7 @@ with open(vals_dir + 'vals_band_system.json', 'r') as jf:
 
 xx, yy = draw_from_normal(-13.98, 0.61, 2.84, 1.33)
 xi, yi, zi = normal_kde(xx, yy, -20, -10, 0, 10)
+import ipdb; ipdb.set_trace()
 plt.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='auto', cmap=plt.cm.Greens_r)
 
 for key, dct in {'SN': sn_vals, 'BN/GN': bn_gn_vals}.items():
