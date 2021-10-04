@@ -1,16 +1,34 @@
 import optparse
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
 from bilby.core.prior import Uniform, DeltaFunction
 
 from enterprise_warp.enterprise_models import StandardModels
+import enterprise.constants as const
 from enterprise_warp import results
+
+import psd_models as pm
 
 # ---------------------------------------------------------------------------- #
 # Models of prior distributions, parameters of which we would like to measure
 # ---------------------------------------------------------------------------- #
 
 # Joint hyper-priors, names to be used for "model: " in parameter files
+
+class Mix_norm_biv_trunc_and_unif(object):
+  """ Joint normal prior with covariance between A and gamma """
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
+               low_lg_A, high_lg_A, low_gam, high_gam, fnorm):
+    return fnorm * norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, \
+           mu_gam, sig_gam, rho_cov, low_lg_A, high_lg_A, low_gam, high_gam, \
+           suffix=self.suffix) + \
+           (1 - fnorm) * unif_lg_A(dataset, low_lg_A, high_lg_A, \
+           suffix=self.suffix) * unif_gamma(dataset, low_gam, high_gam, \
+           suffix=self.suffix)
 
 class Norm_biv_trunc_lg_A_gamma(object):
   """ Joint normal prior with covariance between A and gamma """
@@ -144,7 +162,8 @@ def inorm(dataset, key, mu, sigma):
 # Models for a uniform prior, fitting for lower and upper bounds
 
 def unif(dataset, key, low, high):
-  return ((dataset[key] < high) * (dataset[key] > low)).astype(float)
+  return ((dataset[key] < high) * (dataset[key] > low)).astype(float) / \
+         (high - low) # Added on 2021-10-02 to normalize priors
 
 def unif_lg_A(dataset, low_lg_A, high_lg_A, suffix='red_noise'):
   return unif(dataset, suffix+'_log10_A', low_lg_A, high_lg_A)
@@ -177,6 +196,11 @@ def deltafunc_gamma(dataset, gam, suffix='red_noise'):
 # ---------------------------------------------------------------------------- #
 
 # For normal priors we use uniform hyper-priors
+
+def hp_Mix_norm_biv_trunc_and_unif(hip):
+  """ hip is instance of HierarchicalInferenceParams """
+  fnorm = dict(fnorm = Uniform(0, 1, 'nfrac', r'$\nu_\mathcal{N}$'))
+  return {**hp_Norm_biv_trunc_lg_A_gamma(hip), **fnorm}
 
 def hp_Norm_biv_trunc_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
@@ -300,10 +324,28 @@ class HyperResult(results.BilbyWarpResult):
         continue
 
       self.standardize_chain_for_rn_hyper_pe()
+      self.convert_log10_A_to_pow()
 
       self.results.append(self.result)
       self.chains.append(self.result.posterior)
       self.log_zs.append(self.result.log_evidence)
+
+    if self.opts.plots:
+      self.make_plots_and_exit()
+
+  def convert_log10_A_to_pow(self):
+    log10_As = self.result.posterior[self.suffix+'_log10_A']
+    gammas = self.result.posterior[self.suffix+'_gamma']
+    psr = self.psr_dir.split('_')[1]
+    flow = 1./pm.PulsarEqualPSDLines().tobs[psr]*const.fyr
+    if self.suffix=='red_noise':
+      nf = float(self.params.models[0].noisemodel['J0437-4715']\
+                                                 ['spin_noise'].split('_')[1])
+      fhigh = flow * nf
+    else:
+      raise ValueError('hierarchical_models.py: Please modify for other cases')
+    self.result.posterior[self.suffix+'_pow'] = \
+                          pm.powerlaw_power(log10_As, gammas, flow, fhigh)
 
   def standardize_chain_for_rn_hyper_pe(self):
     for key in self.result.posterior.keys():
@@ -318,6 +360,81 @@ class HyperResult(results.BilbyWarpResult):
       elif self.suffix+'_log10_A' in key:
         self.result.posterior[self.suffix+'_log10_A'] = \
                               self.result.posterior.pop(key)
+
+  def make_plots_and_exit(self):
+    self.total = {self.suffix+'_log10_A': [], self.suffix+'_gamma': [], \
+                  self.suffix+'_pow': [],'logz': []}
+    for ii, cc in enumerate(self.chains):
+      for key in ['_log10_A', '_gamma', '_pow']:
+        self.total[self.suffix+key] += cc[self.suffix+key].tolist()
+      for jj in range(len(cc[self.suffix+key])):
+        self.total['logz'].append(self.log_zs[ii])
+
+    gamma_arr = np.linspace(0, 10, 101)
+    pepl = pm.PulsarEqualPSDLines()
+    psrs = ['J0437-4715', 'J1832-0836', 'J1824-2452A', 'J1909-3744', \
+            'J1939+2134']
+    lgA = {psr: pepl.get_equipower_log10_A(psr, gamma_arr) for psr in psrs}
+    lgA_psd = {psr: pepl.get_equipsd_log10_A(psr, gamma_arr) for psr in psrs}
+
+    plt.scatter(self.total[self.suffix+'_pow'], \
+                self.total[self.suffix+'_gamma'], c = self.total['logz'], \
+                s = 1, alpha = 0.1, label='Posterior samples')
+    plt.xscale('log')
+    plt.xlabel('Noise power')
+    plt.ylabel('gamma')
+    plt.colorbar(label='log_z')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(self.outdir_all + 'population_samples_scatter_pow.png')
+    plt.close()
+
+    plt.scatter(self.total[self.suffix+'_log10_A'], \
+                self.total[self.suffix+'_gamma'], c = self.total['logz'], \
+                s = 1, alpha = 0.1, label='Posterior samples')
+    for psr in psrs:
+      plt.plot(lgA[psr], gamma_arr, label=psr+': equal power')
+    plt.xlabel('log10_A')
+    plt.ylabel('gamma')
+    plt.colorbar(label='log_z')
+    plt.legend(loc='lower left')
+    plt.tight_layout()
+    plt.savefig(self.outdir_all + 'population_samples_scatter.png')
+    plt.close()
+
+    plt.scatter(self.total[self.suffix+'_log10_A'], \
+                self.total[self.suffix+'_gamma'], c = self.total['logz'], \
+                s = 1, alpha = 0.1, label='Posterior samples')
+    for psr in psrs:
+      plt.plot(lgA_psd[psr], gamma_arr, label=psr+': equal PSD at 1/Tobs')
+    plt.xlabel('log10_A')
+    plt.ylabel('gamma')
+    plt.colorbar(label='log_z')
+    plt.legend(loc='lower left')
+    plt.tight_layout()
+    plt.savefig(self.outdir_all + 'population_samples_scatter_psd.png')
+    plt.close()
+
+    plt.hist(self.total[self.suffix+'_pow'], bins=100)
+    plt.xlabel('Power between 1/Tobs_psr and nf_psr/Tobs_psr')
+    plt.ylabel('Probability')
+    plt.savefig(self.outdir_all + 'population_samples_power.png')
+    plt.close()
+
+    plt.hist(self.total[self.suffix+'_log10_A'], bins=100)
+    plt.xlabel('log10_A')
+    plt.ylabel('Probability')
+    plt.savefig(self.outdir_all + 'population_samples_log10_A.png')
+    plt.close()
+
+    plt.hist(self.total[self.suffix+'_gamma'], bins=100)
+    plt.xlabel('gamma')
+    plt.ylabel('Probability')
+    plt.savefig(self.outdir_all + 'population_samples_gamma.png')
+    plt.close()
+
+    print('Plots are saved at ', self.outdir_all)
+    exit()
 
 def parse_commandline():
   """
@@ -334,6 +451,8 @@ def parse_commandline():
                     pulsar results. In case of an array analysis, specify a \
                     directory with result files.", \
                     default=None, type=str)
+
+  parser.add_option("-P", "--plots", help="Make plots and quit", type=int)
 
   # Parameters below are not important, added for compatibility with old code:
 
