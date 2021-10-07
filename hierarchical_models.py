@@ -137,10 +137,15 @@ def norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
   sig_lg_A = float(sig_lg_A)
   cov_term = float(cov_term)
   sig_gam = float(sig_gam)
+  low_lg_A = float(low_lg_A)
+  low_gam = float(low_gam)
+  high_lg_A = float(high_lg_A)
+  high_gam = float(high_gam)
 
   rv = multivariate_normal([mu_lg_A, mu_gam], \
                            [[sig_lg_A**2, cov_term],[cov_term, sig_gam**2]], \
                            allow_singular = True)
+
   vhh, vlh, vhl, vll = rv.cdf(np.array([[[high_lg_A, high_gam],[low_lg_A, high_gam],[high_lg_A, low_gam],[low_lg_A, low_gam]]]))
   area_truncated = vhh - vlh - vhl + vll
 
@@ -195,6 +200,19 @@ def deltafunc_gamma(dataset, gam, suffix='red_noise'):
 # (Hyper-)priors for prior parameters that we fit for
 # ---------------------------------------------------------------------------- #
 
+def uniform_or_deltafunc(val, name, mathname):
+  """
+  Return Bilby prior object DeltaFunction(val) if val is float or int,
+  otherwise return Uniform(val) if val is list of two values - prior boundaries.
+  """
+  if type(val) is float or type(val) is int:
+    return DeltaFunction(val, name, mathname)
+  elif type(val) is list and len(val)==2:
+    return Uniform(val[0], val[1], name, mathname)
+  else:
+    raise ValueError('Unknown prior parameters in hierarchical_models.py: ', \
+                     name, val)
+
 # For normal priors we use uniform hyper-priors
 
 def hp_Mix_norm_biv_trunc_and_unif(hip):
@@ -204,13 +222,13 @@ def hp_Mix_norm_biv_trunc_and_unif(hip):
 
 def hp_Norm_biv_trunc_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
-  truncation_bounds = dict(low_lg_A = DeltaFunction(hip.low_lg_A, \
+  truncation_bounds = dict(low_lg_A = uniform_or_deltafunc(hip.low_lg_A, \
                            'low_lg_A', '$\log_{10}A_\mathrm{low}$'), \
-                           high_lg_A = DeltaFunction(hip.high_lg_A, \
+                           high_lg_A = uniform_or_deltafunc(hip.high_lg_A, \
                            'high_lg_A', '$\log_{10}A_\mathrm{high}$'), \
-                           low_gam = DeltaFunction(hip.low_gam, \
+                           low_gam = uniform_or_deltafunc(hip.low_gam, \
                            'low_gam', '$\gamma_\mathrm{low}$'), \
-                           high_gam = DeltaFunction(hip.high_gam, \
+                           high_gam = uniform_or_deltafunc(hip.high_gam, \
                            'high_gam', '$\gamma_\mathrm{high}$'))
   return {**hp_Norm_biv_lg_A_gamma(hip), **truncation_bounds}
 
