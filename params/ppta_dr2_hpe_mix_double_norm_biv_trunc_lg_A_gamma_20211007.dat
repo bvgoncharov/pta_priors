@@ -1,0 +1,21 @@
+paramfile_label: mix_d_norm_biv_tr_lgA_gam_all_20210923
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+model: Mix_double_norm_biv_trunc
+mu_lg_A: -20 -10
+mu_gam: 0 10
+sig_lg_A: 0 20
+sig_gam: 0 20
+rho_cov: -1 1
+mu_lg_A_2: -14.55 0.20
+sig_lg_A_2: 0.0 10.0
+mu_gam_2: 4.11 0.52
+sig_gam_2: 0.0 10.0
+low_lg_A: -20
+high_lg_A: -10
+low_gam: 0
+high_gam: 10

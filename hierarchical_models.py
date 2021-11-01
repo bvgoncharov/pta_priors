@@ -2,7 +2,7 @@ import optparse
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
-from bilby.core.prior import Uniform, DeltaFunction
+from bilby.core.prior import Uniform, Normal, DeltaFunction
 
 from enterprise_warp.enterprise_models import StandardModels
 import enterprise.constants as const
@@ -16,8 +16,45 @@ import psd_models as pm
 
 # Joint hyper-priors, names to be used for "model: " in parameter files
 
+class Mix_double_norm_biv_trunc(object):
+  """
+  Mixture of (1) a joint normal truncated prior with covariance between A and
+  gamma and (2) same prior centred around the alleged common-spectrum process.
+  """
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
+               mu_lg_A_2, sig_lg_A_2, mu_gam_2, sig_gam_2, rho_cov_2,
+               low_lg_A, high_lg_A, low_gam, high_gam, fnorm):
+    return fnorm * norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, \
+           mu_gam, sig_gam, rho_cov, low_lg_A, high_lg_A, low_gam, high_gam, \
+           suffix=self.suffix) + (1 - fnorm) * \
+           norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A_2, sig_lg_A_2, \
+           mu_gam_2, sig_gam_2, rho_cov_2, low_lg_A, high_lg_A, low_gam, \
+           high_gam, suffix=self.suffix)
+
+class Mix_norm_biv_trunc_and_deltaf(object):
+  """
+  Mixture of (1) a joint normal truncated prior with covariance between A and
+  gamma and (2) a Dirac's delta function.
+  """
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
+               low_lg_A, high_lg_A, low_gam, high_gam, lg_A, gam, fnorm):
+    return fnorm * norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, \
+           mu_gam, sig_gam, rho_cov, low_lg_A, high_lg_A, low_gam, high_gam, \
+           suffix=self.suffix) + \
+           (1 - fnorm) * deltafunc_lg_A(dataset, lg_A, suffix=self.suffix) * \
+           deltafunc_gamma(dataset, gam, suffix=self.suffix)
+
 class Mix_norm_biv_trunc_and_unif(object):
-  """ Joint normal prior with covariance between A and gamma """
+  """
+  Mixture of (1) a joint normal truncated prior with covariance between A and 
+  gamma and (2) a uniform prior.
+  """
   def __init__(self, suffix='red_noise'):
     self.suffix = suffix
 
@@ -31,7 +68,7 @@ class Mix_norm_biv_trunc_and_unif(object):
            suffix=self.suffix)
 
 class Norm_biv_trunc_lg_A_gamma(object):
-  """ Joint normal prior with covariance between A and gamma """
+  """ Joint normal truncated prior with covariance between A and gamma """
   def __init__(self, suffix='red_noise'):
     self.suffix = suffix
 
@@ -120,15 +157,13 @@ def norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, \
 def norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
                               rho_cov, low_lg_A, high_lg_A, low_gam, high_gam, \
                               suffix='red_noise'):
+  """
   # Truncating the bivariate normal distribution that we fit for by creating a mask for posterior samples passed to the prior here. If the data point is outside of prior boundaries, we suggest it as "impossible", and set the probability for this point to be zero. 
-  #mask_low_lg_A = dataset[suffix+'_log10_A'] > low_lg_A
-  #mask_high_lg_A = dataset[suffix+'_log10_A'] < high_lg_A
-  #mask_low_gam = dataset[suffix+'_gamma'] > low_gam
-  #mask_high_gam = dataset[suffix+'_gamma'] < high_gam
-  # This should be true by default, because we do not have any posterior samples outside of boundaries. So, we comment out this code and only renormalize probability based on boundaries.
-  # P. S. Hyper-priors should also have the same boundaries.
 
-  # Normalization
+  When boundaries are fixed and same as for recycled posterior samples: these should be true by default, because we do not have any posterior samples outside of boundaries.
+
+  """
+  # Preparation
   cov_term = rho_cov*sig_lg_A*sig_gam
 
   # Handling some internal Bilby samples that returned as single-value arrays
@@ -142,17 +177,27 @@ def norm_biv_trunc_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
   high_lg_A = float(high_lg_A)
   high_gam = float(high_gam)
 
+  # Truncation
+  mask_low_lg_A = dataset[suffix+'_log10_A'] > low_lg_A
+  mask_high_lg_A = dataset[suffix+'_log10_A'] < high_lg_A
+  mask_low_gam = dataset[suffix+'_gamma'] > low_gam
+  mask_high_gam = dataset[suffix+'_gamma'] < high_gam
+
+  # Normalization factor: volume of a 2-parameter Gaussian within boundaries
   rv = multivariate_normal([mu_lg_A, mu_gam], \
                            [[sig_lg_A**2, cov_term],[cov_term, sig_gam**2]], \
                            allow_singular = True)
 
-  vhh, vlh, vhl, vll = rv.cdf(np.array([[[high_lg_A, high_gam],[low_lg_A, high_gam],[high_lg_A, low_gam],[low_lg_A, low_gam]]]))
-  area_truncated = vhh - vlh - vhl + vll
+  vhh, vlh, vhl, vll = rv.cdf(np.array([[[high_lg_A, high_gam],\
+                                         [low_lg_A, high_gam],\
+                                         [high_lg_A, low_gam],\
+                                         [low_lg_A, low_gam]]]))
+  vol_truncated = vhh - vlh - vhl + vll
 
-  #if np.sum(norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, suffix=suffix) * mask_low_lg_A * mask_high_lg_A * mask_low_gam * mask_high_gam / area_truncated == 0) > 0:
-  #  import ipdb; ipdb.set_trace()
   # Total
-  return norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, rho_cov, suffix=suffix) / area_truncated # * mask_low_lg_A * mask_high_lg_A * mask_low_gam * mask_high_gam
+  return norm_biv_lg_A_gamma(dataset, mu_lg_A, sig_lg_A, mu_gam, sig_gam, \
+         rho_cov, suffix=suffix) / vol_truncated * mask_low_lg_A * \
+         mask_high_lg_A * mask_low_gam * mask_high_gam
 
 def inorm(dataset, key, mu, sigma):
   """ Helper function for norm_biv() """
@@ -188,7 +233,7 @@ def deltafunc(dataset, key, val, tol=2.0):
   computational reasons. """
   #return float(bool()) True if dataset[key]==val else False
   #return np.logical_not((dataset[key] - val).astype(bool)).astype(float)
-  return (np.abs(dataset[key] - val) < tol).astype(float)
+  return (np.abs(dataset[key] - val) < tol).astype(float)/(2*tol)
 
 def deltafunc_lg_A(dataset, lg_A, suffix='red_noise'):
   return deltafunc(dataset, suffix+'_log10_A', lg_A, tol=2.0)
@@ -200,7 +245,7 @@ def deltafunc_gamma(dataset, gam, suffix='red_noise'):
 # (Hyper-)priors for prior parameters that we fit for
 # ---------------------------------------------------------------------------- #
 
-def uniform_or_deltafunc(val, name, mathname):
+def hyper_prior_type(val, name, mathname, hp_type="uniform"):
   """
   Return Bilby prior object DeltaFunction(val) if val is float or int,
   otherwise return Uniform(val) if val is list of two values - prior boundaries.
@@ -208,12 +253,43 @@ def uniform_or_deltafunc(val, name, mathname):
   if type(val) is float or type(val) is int:
     return DeltaFunction(val, name, mathname)
   elif type(val) is list and len(val)==2:
-    return Uniform(val[0], val[1], name, mathname)
+    if hp_type == "uniform":
+      return Uniform(val[0], val[1], name, mathname)
+    elif hp_type == "normal":
+      return Normal(val[0], val[1], name, mathname)
   else:
     raise ValueError('Unknown prior parameters in hierarchical_models.py: ', \
                      name, val)
 
 # For normal priors we use uniform hyper-priors
+
+def hp_Mix_double_norm_biv_trunc(hip):
+  """
+  Here we mix a wide Gaussian and a narrow Gaussian, for which a mean we center
+  at the alleged common-spectrum process, hence a Normal hyper-prior, with a 
+  variance corresponding to the CP measurement uncertainty. A variance of a 
+  second Gaussian is then the intrinsic width of a CP.
+
+  hip is instance of HierarchicalInferenceParams
+  """
+  fnorm = dict(fnorm = Uniform(0, 1, 'nfrac', r'$\nu_\mathcal{N}$'))
+  lg_A_2 = dict(mu_lg_A_2 = Normal(hip.mu_lg_A_2[0], hip.mu_lg_A_2[1], \
+                'mu_lg_A_2', '$\mu_{lgA,2}$'),
+                sig_lg_A_2 = Uniform(hip.sig_lg_A_2[0], hip.sig_lg_A_2[1], \
+                'sig_lg_A_2', '$\sigma_{lgA,2}$'))
+  gam_2 = dict(mu_gam_2 = Normal(hip.mu_gam_2[0], hip.mu_gam_2[1], \
+               'mu_gam_2', '$\mu_{\gamma,2}$'),
+                sig_gam_2 = Uniform(hip.sig_gam_2[0], hip.sig_gam_2[1], \
+               'sig_gam_2', '$\sigma_{\gamma,2}$'))
+  rho_cov_2 = dict(rho_cov_2 = hyper_prior_type(hip.rho_cov_2, \
+                                                    'rho_cov_2', r'$\rho_2$'))
+  return {**hp_Norm_biv_trunc_lg_A_gamma(hip), **lg_A_2, **gam_2, **rho_cov_2, **fnorm}
+
+def hp_Mix_norm_biv_trunc_and_deltaf(hip):
+  """ hip is instance of HierarchicalInferenceParams """
+  fnorm = dict(fnorm = Uniform(0, 1, 'nfrac', r'$\nu_\mathcal{N}$'))
+  return {**hp_Norm_biv_trunc_lg_A_gamma(hip), **hp_DeltaFunc_lg_A_gamma(hip), \
+          **fnorm}
 
 def hp_Mix_norm_biv_trunc_and_unif(hip):
   """ hip is instance of HierarchicalInferenceParams """
@@ -222,32 +298,32 @@ def hp_Mix_norm_biv_trunc_and_unif(hip):
 
 def hp_Norm_biv_trunc_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
-  truncation_bounds = dict(low_lg_A = uniform_or_deltafunc(hip.low_lg_A, \
+  truncation_bounds = dict(low_lg_A = hyper_prior_type(hip.low_lg_A, \
                            'low_lg_A', '$\log_{10}A_\mathrm{low}$'), \
-                           high_lg_A = uniform_or_deltafunc(hip.high_lg_A, \
+                           high_lg_A = hyper_prior_type(hip.high_lg_A, \
                            'high_lg_A', '$\log_{10}A_\mathrm{high}$'), \
-                           low_gam = uniform_or_deltafunc(hip.low_gam, \
+                           low_gam = hyper_prior_type(hip.low_gam, \
                            'low_gam', '$\gamma_\mathrm{low}$'), \
-                           high_gam = uniform_or_deltafunc(hip.high_gam, \
+                           high_gam = hyper_prior_type(hip.high_gam, \
                            'high_gam', '$\gamma_\mathrm{high}$'))
   return {**hp_Norm_biv_lg_A_gamma(hip), **truncation_bounds}
 
 def hp_Norm_biv_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
-  rho_cov = dict(rho_cov = Uniform(hip.rho_cov[0], hip.rho_cov[1], \
+  rho_cov = dict(rho_cov = hyper_prior_type(hip.rho_cov, \
               'rho_cov', r'$\rho$'))
   return {**hp_Norm_lg_A(hip), **hp_Norm_gamma(hip), **rho_cov}
 
 def hp_Norm_lg_A(hip):
   """ hip is instance of HierarchicalInferenceParams """
-  return dict(mu_lg_A = Uniform(hip.mu_lg_A[0], hip.mu_lg_A[1], \
-              'mu_lg_A', '$\mu_{lgA}$'),
+  return dict(mu_lg_A = hyper_prior_type(hip.mu_lg_A, \
+              'mu_lg_A', '$\mu_{lgA}$', hp_type=hip.mu_lg_A_type),
               sig_lg_A = Uniform(hip.sig_lg_A[0], hip.sig_lg_A[1], \
               'sig_lg_A', '$\sigma_{lgA}$'))
 
 def hp_Norm_gamma(hip):
-  return dict(mu_gam = Uniform(hip.mu_gam[0], hip.mu_gam[1], \
-              'mu_gam', '$\mu_{\gamma}$'),
+  return dict(mu_gam = hyper_prior_type(hip.mu_gam, \
+              'mu_gam', '$\mu_{\gamma}$', hp_type=hip.mu_gam_type),
               sig_gam = Uniform(hip.sig_gam[0], hip.sig_gam[1], \
               'sig_gam', '$\sigma_{\gamma}$'))
 
@@ -303,10 +379,17 @@ class HierarchicalInferenceParams(StandardModels):
       "model": "norm_prod_lg_A_gamma",
       "par_suffix": "red_noise",
       "mu_lg_A": [-20., -10.],
+      "mu_lg_A_type": "uniform",
       "sig_lg_A": [0., 10.],
       "mu_gam": [0., 10.],
+      "mu_gam_type": "uniform",
       "sig_gam": [0., 10.],
       "rho_cov": [0., 1.],
+      "mu_lg_A_2": [-14.55, 0.20],
+      "sig_lg_A_2": [0., 10.],
+      "mu_gam_2": [4.11, 0.52],
+      "sig_gam_2": [0., 10.],
+      "rho_cov_2": [0., 1.],
       "low_lg_A": [-20., -10.],
       "high_lg_A": [-20., -10.],
       "low_gam": [0., 10.],
@@ -331,6 +414,9 @@ class HyperResult(results.BilbyWarpResult):
 
   def main_pipeline(self):
     for psr_dir in sorted(self.psr_dirs):
+      if psr_dir.split('_')[1] in self.opts.exclude:
+        print('Excluding pulsar ', psr_dir)
+        continue
 
       self.psr_dir = psr_dir
       success = self._scan_psr_output()
@@ -470,7 +556,12 @@ def parse_commandline():
                     directory with result files.", \
                     default=None, type=str)
 
+  parser.add_option("-t", "--target", help="Parameter file for the target \
+                    distribution (importance sampling)", default=None, type=str)
+
   parser.add_option("-P", "--plots", help="Make plots and quit", type=int)
+
+  parser.add_option("-e", "--exclude", help="Exclude PSR", action="append", default=[], type=str)
 
   # Parameters below are not important, added for compatibility with old code:
 
