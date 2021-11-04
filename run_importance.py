@@ -6,7 +6,9 @@ Runs importance sampling:
 
 Example: python run_importance.py --result "/home/bgonchar/pta_gwb_priors/params/ppta_dr2_snall_to_recycle_20210626.dat" --prfile "/home/bgonchar/pta_gwb_priors/params/ppta_dr2_hpe_unif_prod_lg_A_gamma_set_g1_20211011_1.dat" --target "/home/bgonchar/pta_gwb_priors/params/ppta_dr2_snall_cpl_fixgam_30_nf_to_recycle_20210811.dat"
 """
+import os
 import copy
+#import pickle
 
 import bilby
 
@@ -22,6 +24,8 @@ opts = hm.parse_commandline()
 
 custom = ppta_dr2_models.PPTADR2Models
 configuration = hm.HierarchicalInferenceParams
+params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
+opts.exclude = params.exclude
 
 # Loading results from sampling proposal likelihood per pulsar (no CP)
 #params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
@@ -37,33 +41,52 @@ opts_ew.clearcache = 0
 opts_ew.mpi_regime = 0
 opts_ew.wipe_old_output = 0
 
+label = params.paramfile_label
+outdir = hr.outdir_all + label + '/'
+if not os.path.exists(outdir):
+  raise ValueError('Output directory does not exist: '+outdir)
+
 # Loading target likelihoods to sample (with CP)
-obj_likelihoods_targ = []
-for ii in range(1,2):#n_psr):
-  opts_ew.num = ii
-  params = enterprise_warp.Params(opts_ew.target, opts=opts_ew, custom_models_obj=custom)
-  pta = enterprise_warp.init_pta(params)
-  priors = bilby_warp.get_bilby_prior_dict(pta[0])
-  for pkey, prior in priors.items():
-    if type(prior) == bilby.core.prior.analytical.Normal:
-      if 'gamma' in pkey:
-        priors[pkey].minimum = 0.
-        priors[pkey].maximum = 10.
-      elif 'log10_A' in pkey:
-        priors[pkey].minimum = -20.
-        priors[pkey].maximum = -6.
-  parameters = dict.fromkeys(priors.keys())
-  obj_likelihoods_targ.append(bilby_warp.PTABilbyLikelihood(pta[0],parameters))
+#tlo_file = outdir + '/target_likelihood_objs.pkl'
+#if os.path.exists(tlo_file):
+#  print('Loading target likelihood objects, ', tlo_file)
+#  with open(tlo_file,'rb') as tlf:
+#    obj_likelihoods_targ = pickle.load(tlf)
+#else:
+if True:
+  obj_likelihoods_targ = []
+  for ii in range(n_psr):
+    if ii in hr.excluded_nums:
+      print('Excluding PSR ', ii, ' from target likelihoods')
+      continue
+    opts_ew.num = ii
+    params_t = enterprise_warp.Params(opts_ew.target, opts=opts_ew, custom_models_obj=custom)
+    pta = enterprise_warp.init_pta(params_t)
+    priors = bilby_warp.get_bilby_prior_dict(pta[0])
+    for pkey, prior in priors.items():
+      if type(prior) == bilby.core.prior.analytical.Normal:
+        if 'gamma' in pkey:
+          priors[pkey].minimum = 0.
+          priors[pkey].maximum = 10.
+        elif 'log10_A' in pkey:
+          priors[pkey].minimum = -20.
+          priors[pkey].maximum = -6.
+    parameters = dict.fromkeys(priors.keys())
+    obj_likelihoods_targ.append(bilby_warp.PTABilbyLikelihood(pta[0],parameters))
+  #with open(tlo_file, 'wb') as tlf:
+  #  pickle.dump(obj_likelihoods_targ, tlf, pickle.HIGHEST_PROTOCOL)
 
-# Constructing Signal likelihood
-params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
-sp = hm.__dict__[params.model](suffix=params.par_suffix)
-is_likelihood = im.ImportanceLikelihoodSignal(hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=2)
-
+# Hyper priors
 hp_priors = hm.__dict__['hp_'+params.model](params)
 
+# Priors (for quasi-common process, noise likelihood)
+sp = hm.__dict__[params.model](suffix=params.par_suffix)
+
+# Constructing Signal likelihood
+is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement) #sp, hr.log_zs, max_samples=2)
+
 result = bilby.core.sampler.run_sampler(
-     likelihood=hp_likelihood, priors=hp_priors,
+     likelihood=is_likelihood, priors=hp_priors,
      use_ratio=False, outdir=outdir, label=params.paramfile_label,
      verbose=True, clean=True, sampler=params.sampler, **params.sampler_kwargs)
 

@@ -1,6 +1,7 @@
 
 from multiprocessing import Pool
 
+from scipy.integrate import simps
 import numpy as np
 
 from enterprise_warp import results
@@ -15,17 +16,19 @@ class ImportanceLikelihoodSignal(Likelihood):
   log_evidences: list of float, log evidence for proposal likelihoods
   """
   def __init__(self, posteriors, obj_likelihoods_targ, 
-               hyper_prior, log_evidences, multiproc=False, npool=2, max_samples=1e100):
+               prior, 
+               log_evidences, multiproc=False, npool=2, max_samples=1e100):
 
-    if not isinstance(hyper_prior, Model):
-      hyper_prior = Model([hyper_prior])
+    #if not isinstance(prior, Model):
+    #  prior = Model([prior])
 
-    super(ImportanceLikelihoodSignal, self).__init__(hyper_prior.parameters)
+    super(ImportanceLikelihoodSignal, self).__init__({})#prior.parameters)
 
     self.multiproc = multiproc
     if multiproc:
       self.pool = Pool(npool)
 
+    self.prior = prior
     self.posteriors = [posterior.sample(max_samples) for posterior in posteriors]
     self.obj_likelihoods_targ = obj_likelihoods_targ
 
@@ -40,83 +43,69 @@ class ImportanceLikelihoodSignal(Likelihood):
         del self.data[-1][ii]['log_likelihood']
         del self.data[-1][ii]['log_prior']
         #self.data[ii]['gw_log10_A'] = -15.0
-    self.log_likelihoods_proposal = np.array(self.log_likelihoods_proposal)#, dtype=np.float128)
+    self.log_likelihoods_proposal = np.array(self.log_likelihoods_proposal, dtype=np.longdouble)
     self.data = np.array(self.data)
     self.data_shape = self.data.shape
     self.n_psrs, self.n_posteriors = self.data.shape
     self.flat_data = self.data.flatten()
 
-    self.log_likelihoods_target = np.empty(self.data_shape)#, dtype=np.float128)
+    self.log_likelihoods_target = np.empty(self.data_shape, dtype=np.longdouble)
 
-    self.evidence_factor = np.sum(log_evidences)
+    self.log_evidence_factor = np.sum(log_evidences)
 
-  def log_likelihood_ratio(self):
-    self.update_parameter_samples()
-    # This loop can be run through multiprocessing
+  def evaluate_target_likelihood(self):
     for psr_ii in range(self.n_psrs): #zip(self.obj_likelihoods_targ, self.data):
       for posterior_jj in range(self.n_posteriors): #self.data[psr_ii]:
         self.obj_likelihoods_targ[psr_ii].parameters = self.data[psr_ii,posterior_jj]
         self.log_likelihoods_target[psr_ii,posterior_jj] = self.obj_likelihoods_targ[psr_ii].log_likelihood()
+
+  def log_likelihood_ratio(self):
     # First sum for likelihood ratios over self.n_posteriors, outter sum for log ratios over self.n_psrs
-    return np.sum(np.log(np.sum(np.exp(self.log_likelihoods_target - self.log_likelihoods_proposal), axis=1) / self.n_posteriors))
+    return float(np.sum(np.log(np.sum(np.exp(self.log_likelihoods_target - self.log_likelihoods_proposal), axis=1) / self.n_posteriors)))
+
+  def log_likelihood_ratio_wrapper(self):
+    self.update_parameter_samples(self.parameters)
+    self.evaluate_target_likelihood()
+    return self.log_likelihood_ratio()
 
   def noise_log_likelihood(self):
     return self.log_evidence_factor
 
   def log_likelihood(self):
-    return self.noise_log_likelihood() + self.log_likelihood_ratio()
+    return self.noise_log_likelihood() + self.log_likelihood_ratio_wrapper()
 
-  def update_parameter_samples(self, mpi=False):
+  def update_parameter_samples(self, sample, mpi=False):
     # This loop can be run through multiprocessing
-    import ipdb; ipdb.set_trace()
-    self.flat_data = [item.update(self.parameters) for item in self.flat_data]
+    for item in self.flat_data:
+      item.update(sample)
     self.data = self.flat_data.reshape(self.data_shape)
 
-  def resample_posteriors(self, max_samples=None):
-    """
-    Convert list of pandas DataFrame object to dict of arrays.
-
-    Parameters
-    ==========
-    max_samples: int, opt
-        Maximum number of samples to take from each posterior,
-        default is length of shortest posterior chain.
-    Returns
-    =======
-    data: dict
-        Dictionary containing arrays of size (n_posteriors, max_samples)
-        There is a key for each shared key in self.posteriors.
-    """
-    if max_samples is not None:
-        self.max_samples = max_samples
-    for posterior in self.posteriors:
-        self.max_samples = min(len(posterior), self.max_samples)
-    data = {key: [] for key in self.posteriors[0]}
-    if 'log_prior' in data.keys():
-        data.pop('log_prior')
-    if 'prior' not in data.keys():
-        data['prior'] = []
-    for posterior in self.posteriors:
-        temp = posterior.sample(self.max_samples)
-        if 'log_prior' in temp.keys():
-            temp['prior'] = np.exp(temp['log_prior'])
-        import ipdb; ipdb.set_trace()
-        for key in data:
-            data[key].append(temp[key])
-    for key in data:
-        data[key] = np.array(data[key])
-    return data
-
-
 class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
-  def __init__(self, posteriors, log_likelihoods_prop, log_likelihoods_targ,
-               log_evidences=None, max_samples=1e100):
+  def __init__(self, posteriors, obj_likelihoods_targ,
+               prior,
+               log_evidences, multiproc=False, npool=2, max_samples=1e100):
 
-    super(ImportanceLikelihoodNoise, self).__init__(hyper_prior.parameters)
-    pass
+    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples)
+    self.qc_samples = np.linspace(-20., -10., 3) #100+1) # A_qc (gamma_qc) sample grid
+    self.prior_for_qc_samples = np.empty(len(self.qc_samples))
+    self.log_likelihoods_target_unmarginalized = np.empty(self.data_shape + (len(self.qc_samples),), dtype=np.longdouble)
 
-  def log_likelihood_ratio(self):
-    return
+    # Pre-computing target likelihood at a grid of qc samples
+    print('Pre-computing target likelihood, total samples: ', len(self.qc_samples))
+    for qc_sample_kk, qc_sample in enumerate(self.qc_samples):
+      print('Sample ', qc_sample_kk)
+      self.update_parameter_samples({'gw_log10_A': qc_sample})
+      self.evaluate_target_likelihood()
+      self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = self.log_likelihoods_target
+
+  def log_likelihood_ratio_wrapper(self):
+    self.evaluate_prior_for_qc_samples()
+    # marginalizing target likelihood over sampled prior
+    self.log_likelihoods_target = simps(self.log_likelihoods_target_unmarginalized * self.prior_for_qc_samples, x=self.qc_samples, axis=2)
+    return self.log_likelihood_ratio()
+
+  def evaluate_prior_for_qc_samples(self):
+    self.prior_for_qc_samples = self.prior({'gw_log10_A': self.qc_samples}, **self.parameters)
 
 # ================================================== #
 
@@ -130,8 +119,12 @@ class ImportanceResult(results.BilbyWarpResult):
     self.log_zs = []
 
   def main_pipeline(self):
-    for psr_dir in sorted(self.psr_dirs):
+    self.psr_nums = [int(pd.split('_')[0]) for pd in self.psr_dirs]
+    self.excluded_nums = []
+    for pn, psr_dir in sorted(zip(self.psr_nums, self.psr_dirs)):
+
       if psr_dir.split('_')[1] in self.opts.exclude:
+        self.excluded_nums.append(pn)
         print('Excluding pulsar ', psr_dir)
         continue
 

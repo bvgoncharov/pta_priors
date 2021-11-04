@@ -2,6 +2,7 @@ import optparse
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
+from scipy.stats import norm as scipy_norm
 from bilby.core.prior import Uniform, Normal, DeltaFunction
 
 from enterprise_warp.enterprise_models import StandardModels
@@ -103,6 +104,14 @@ class Norm_lg_A(object):
   def __call__(self, dataset, mu_lg_A, sig_lg_A):
     return norm_lg_A(dataset, mu_lg_A, sig_lg_A, suffix = self.suffix)
 
+class Norm_trunc_lg_A(object):
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_lg_A, sig_lg_A, low_lg_A, high_lg_A):
+    return norm_trunc_lg_A(dataset, mu_lg_A, sig_lg_A, low_lg_A, \
+                           high_lg_A, suffix = self.suffix)
+
 class Unif_prod_lg_A_gamma(object):
   def __init__(self, suffix='red_noise'):
     self.suffix = suffix
@@ -139,8 +148,17 @@ def norm(dataset, key, mu, sigma):
   return np.exp(- (dataset[key] - mu)**2 / (2 * sigma**2)) /\
          (2 * np.pi * sigma**2)**0.5
 
+def norm_area(mu, sigma, low, high):
+  return np.abs(scipy_norm.cdf(high, mu, sigma) - \
+                scipy_norm.cdf(low, mu, sigma))
+
 def norm_lg_A(dataset, mu_lg_A, sig_lg_A, suffix='red_noise'):
   return norm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A)
+
+def norm_trunc_lg_A(dataset, mu_lg_A, sig_lg_A, low_lg_A, \
+                    high_lg_A, suffix='red_noise'):
+  return norm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A)/\
+         norm_area(mu_lg_A, sig_lg_A, low_lg_A, high_lg_A)
 
 def norm_gamma(dataset, mu_gam, sig_gam, suffix='red_noise'):
   return norm(dataset, suffix+'_gamma', mu_gam, sig_gam)
@@ -242,6 +260,18 @@ def deltafunc_gamma(dataset, gam, suffix='red_noise'):
   return deltafunc(dataset, suffix+'_gamma', gam, tol=2.0)
 
 # ---------------------------------------------------------------------------- #
+# Models of prior distributions for importance sampling
+# ---------------------------------------------------------------------------- #
+
+# These are not used in signal likelihood
+class Unif_lg_A_cp(object):
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, lg_A):
+    raise ValueError('We do not do that here')
+
+# ---------------------------------------------------------------------------- #
 # (Hyper-)priors for prior parameters that we fit for
 # ---------------------------------------------------------------------------- #
 
@@ -298,15 +328,8 @@ def hp_Mix_norm_biv_trunc_and_unif(hip):
 
 def hp_Norm_biv_trunc_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
-  truncation_bounds = dict(low_lg_A = hyper_prior_type(hip.low_lg_A, \
-                           'low_lg_A', '$\log_{10}A_\mathrm{low}$'), \
-                           high_lg_A = hyper_prior_type(hip.high_lg_A, \
-                           'high_lg_A', '$\log_{10}A_\mathrm{high}$'), \
-                           low_gam = hyper_prior_type(hip.low_gam, \
-                           'low_gam', '$\gamma_\mathrm{low}$'), \
-                           high_gam = hyper_prior_type(hip.high_gam, \
-                           'high_gam', '$\gamma_\mathrm{high}$'))
-  return {**hp_Norm_biv_lg_A_gamma(hip), **truncation_bounds}
+  return {**hp_Norm_biv_lg_A_gamma(hip), **hp_Unif_lg_A(hip), \
+          **hp_Unif_gamma(hip)}
 
 def hp_Norm_biv_lg_A_gamma(hip):
   """ hip is instance of HierarchicalInferenceParams """
@@ -321,6 +344,9 @@ def hp_Norm_lg_A(hip):
               sig_lg_A = Uniform(hip.sig_lg_A[0], hip.sig_lg_A[1], \
               'sig_lg_A', '$\sigma_{lgA}$'))
 
+def hp_Norm_trunc_lg_A(hip):
+  return {**hp_Norm_lg_A(hip), **hp_Unif_lg_A(hip)}
+
 def hp_Norm_gamma(hip):
   return dict(mu_gam = hyper_prior_type(hip.mu_gam, \
               'mu_gam', '$\mu_{\gamma}$', hp_type=hip.mu_gam_type),
@@ -333,16 +359,16 @@ def hp_Norm_prod_lg_A_gamma(hip):
 # For uniform priors we use uniform hyper-priors
 
 def hp_Unif_lg_A(hip):
-  return dict(low_lg_A = Uniform(hip.low_lg_A[0], hip.low_lg_A[1], \
-              'low_lg_A', '$low_{lgA}$'),
-              high_lg_A = Uniform(hip.high_lg_A[0], hip.high_lg_A[1], \
-              'high_lg_A', '$high_{lgA}$'))
+  return dict(low_lg_A = hyper_prior_type(hip.low_lg_A, \
+              'low_lg_A', '$\log_{10}A_\mathrm{low}$'), \
+              high_lg_A = hyper_prior_type(hip.high_lg_A, \
+              'high_lg_A', '$\log_{10}A_\mathrm{high}$'))
 
 def hp_Unif_gamma(hip):
-  return dict(low_gam = Uniform(hip.low_gam[0], hip.low_gam[1], \
-              'low_gam', '$low_{\gamma}$'),
-              high_gam = Uniform(hip.high_gam[0], hip.high_gam[1], \
-              'high_gam', '$high_{\gamma}$'))
+  return dict(low_gam = hyper_prior_type(hip.low_gam, \
+              'low_gam', '$\gamma_\mathrm{low}$'), \
+              high_gam = hyper_prior_type(hip.high_gam, \
+              'high_gam', '$\gamma_\mathrm{high}$'))
 
 def hp_Unif_prod_lg_A_gamma(hip):
   return {**hp_Unif_lg_A(hip), **hp_Unif_gamma(hip)}
@@ -365,6 +391,15 @@ def hp_DeltaFunc_lg_A_gamma(hip):
   return {**hp_DeltaFunc_lg_A(hip), **hp_DeltaFunc_gamma(hip)}
 
 # ---------------------------------------------------------------------------- #
+# (Hyper-)priors for target likelihoods in importance sampling
+# ---------------------------------------------------------------------------- #
+
+# Signal likelihood (CP), parameter names should match those in enterprise
+def hp_Unif_lg_A_cp(hip):
+  return dict(gw_log10_A = Uniform(hip.gwb_lgA[0], hip.gwb_lgA[1], \
+              'gw_log10_A', '$\log_{10}A_\mathrm{CP}$'))
+
+# ---------------------------------------------------------------------------- #
 # Parameter object with default values to read from a parameter file
 # ---------------------------------------------------------------------------- #
 
@@ -377,7 +412,9 @@ class HierarchicalInferenceParams(StandardModels):
     self.priors.update({
       "max_samples_from_measurement": 500,
       "model": "norm_prod_lg_A_gamma",
+      "importance_likelihood": "ImportanceLikelihoodSignal",
       "par_suffix": "red_noise",
+      "exclude": [""],
       "mu_lg_A": [-20., -10.],
       "mu_lg_A_type": "uniform",
       "sig_lg_A": [0., 10.],
