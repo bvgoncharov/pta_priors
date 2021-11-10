@@ -83,13 +83,11 @@ hp_priors = hm.__dict__['hp_'+params.model](params)
 sp = hm.__dict__[params.model](suffix=params.par_suffix)
 
 # Constructing Signal likelihood
-is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement) #sp, hr.log_zs, max_samples=2)
+is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size) #sp, hr.log_zs, max_samples=2)
 
 result = bilby.core.sampler.run_sampler(
      likelihood=is_likelihood, priors=hp_priors,
      use_ratio=False, outdir=outdir, label=params.paramfile_label,
-     verbose=True, clean=True, sampler=params.sampler, **params.sampler_kwargs)
+     verbose=True, clean=True, sampler=params.sampler, soft_init=True, **params.sampler_kwargs)
 
 result.plot_corner()
-
-import ipdb; ipdb.set_trace()

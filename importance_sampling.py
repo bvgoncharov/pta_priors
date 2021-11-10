@@ -1,4 +1,5 @@
 
+import os.path
 from multiprocessing import Pool
 
 from scipy.integrate import simps
@@ -15,9 +16,9 @@ class ImportanceLikelihoodSignal(Likelihood):
   obj_likelihoods_targ: list of bilby_warp.PTABilbyLikelihood with target likelihoods
   log_evidences: list of float, log evidence for proposal likelihoods
   """
-  def __init__(self, posteriors, obj_likelihoods_targ, 
-               prior, 
-               log_evidences, multiproc=False, npool=2, max_samples=1e100):
+  def __init__(self, posteriors, obj_likelihoods_targ, prior, 
+               log_evidences, multiproc=False, npool=2, max_samples=1e100,
+               stl_file="", grid_size=300):
 
     #if not isinstance(prior, Model):
     #  prior = Model([prior])
@@ -81,28 +82,39 @@ class ImportanceLikelihoodSignal(Likelihood):
     self.data = self.flat_data.reshape(self.data_shape)
 
 class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
-  def __init__(self, posteriors, obj_likelihoods_targ,
-               prior,
-               log_evidences, multiproc=False, npool=2, max_samples=1e100):
+  def __init__(self, posteriors, obj_likelihoods_targ, prior,
+               log_evidences, multiproc=False, npool=2, max_samples=1e100,
+               stl_file="", grid_size=300):
 
-    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples)
-    self.qc_samples = np.linspace(-20., -10., 3) #100+1) # A_qc (gamma_qc) sample grid
+    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, stl_file=stl_file, grid_size=grid_size)
+    self.qc_samples = np.linspace(-20., -10., grid_size) #100+1) # A_qc (gamma_qc) sample grid
     self.prior_for_qc_samples = np.empty(len(self.qc_samples))
     self.log_likelihoods_target_unmarginalized = np.empty(self.data_shape + (len(self.qc_samples),), dtype=np.longdouble)
 
     # Pre-computing target likelihood at a grid of qc samples
-    print('Pre-computing target likelihood, total samples: ', len(self.qc_samples))
-    for qc_sample_kk, qc_sample in enumerate(self.qc_samples):
-      print('Sample ', qc_sample_kk)
-      self.update_parameter_samples({'gw_log10_A': qc_sample})
-      self.evaluate_target_likelihood()
-      self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = self.log_likelihoods_target
+    if stl_file!="" and os.path.exists(stl_file):
+      self.log_likelihoods_target_unmarginalized = np.load(stl_file)
+    else:
+      print('Pre-computing target likelihood, total samples: ', len(self.qc_samples))
+      for qc_sample_kk, qc_sample in enumerate(self.qc_samples):
+        print('Sample ', qc_sample_kk, '/', len(self.qc_samples))
+        self.update_parameter_samples({'gw_log10_A': qc_sample})
+        self.evaluate_target_likelihood()
+        self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = self.log_likelihoods_target
+      if stl_file is not None:
+        np.save(stl_file, self.log_likelihoods_target_unmarginalized)
+        print('Pre-computed likelihood, exiting')
+        exit()
 
   def log_likelihood_ratio_wrapper(self):
     self.evaluate_prior_for_qc_samples()
     # marginalizing target likelihood over sampled prior
     self.log_likelihoods_target = simps(self.log_likelihoods_target_unmarginalized * self.prior_for_qc_samples, x=self.qc_samples, axis=2)
-    return self.log_likelihood_ratio()
+    logl_ratio = self.log_likelihood_ratio()
+    if logl_ratio != np.inf:
+      return self.log_likelihood_ratio()
+    else:
+      return 1e100
 
   def evaluate_prior_for_qc_samples(self):
     self.prior_for_qc_samples = self.prior({'gw_log10_A': self.qc_samples}, **self.parameters)

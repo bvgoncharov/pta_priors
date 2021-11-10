@@ -412,7 +412,6 @@ class HierarchicalInferenceParams(StandardModels):
     self.priors.update({
       "max_samples_from_measurement": 500,
       "model": "norm_prod_lg_A_gamma",
-      "importance_likelihood": "ImportanceLikelihoodSignal",
       "par_suffix": "red_noise",
       "exclude": [""],
       "mu_lg_A": [-20., -10.],
@@ -433,6 +432,9 @@ class HierarchicalInferenceParams(StandardModels):
       "high_gam": [0., 10.],
       "lg_A": [-20., -10.],
       "gam": [0., 10.],
+      # Importance sampling only:
+      "importance_likelihood": "ImportanceLikelihoodSignal",
+      "grid_size": 300,
     })
 
 # ---------------------------------------------------------------------------- #

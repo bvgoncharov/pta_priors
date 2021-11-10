@@ -2,7 +2,7 @@
 #SBATCH --job-name=ppta_is_signal_gx3_20211102
 #SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_is_signal_gx3_20211102_%A_%a.out
 #SBATCH --ntasks=64
-#SBATCH --time=0-5
+#SBATCH --time=0-11
 #SBATCH --mem-per-cpu=2G
 #SBATCH --tmp=6G
 #SBATCH --array=0
