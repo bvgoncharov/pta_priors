@@ -600,7 +600,13 @@ def parse_commandline():
 
   parser.add_option("-P", "--plots", help="Make plots and quit", type=int)
 
-  parser.add_option("-e", "--exclude", help="Exclude PSR", action="append", default=[], type=str)
+  parser.add_option("-e", "--exclude", help="Exclude PSR", action="append", \
+                    default=[], type=str)
+
+  # For analytical importance sampling
+  parser.add_option("-I", "--save_iterations", default=-1, help="Save \
+                    likelihood for each grid point. -1: off, >=0: \
+                    grid point", type=int)
 
   # Parameters below are not important, added for compatibility with old code:
 

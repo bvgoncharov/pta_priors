@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=ppta_is_noise_gx3_20211102
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_is_noise_gx3_20211102_%A_%a.out
+#SBATCH --job-name=ppta_is_noise_gx3_20211104
+#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_is_noise_gx3_20211104_%A_%a.out
 #SBATCH --ntasks=16
-#SBATCH --time=0-5
-#SBATCH --mem-per-cpu=3G
+#SBATCH --time=0-23
+#SBATCH --mem-per-cpu=4G
 #SBATCH --tmp=6G
 #SBATCH --array=0
 

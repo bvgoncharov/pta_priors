@@ -8,6 +8,7 @@ Example: python run_importance.py --result "/home/bgonchar/pta_gwb_priors/params
 """
 import os
 import copy
+import time
 #import pickle
 import numpy as np
 from scipy.interpolate import griddata
@@ -89,7 +90,7 @@ sp = hm.__dict__[params.model](suffix=params.par_suffix)
 
 # Constructing Signal likelihood
 if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
-  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size) #sp, hr.log_zs, max_samples=2)
+  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations) #sp, hr.log_zs, max_samples=2)
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -97,11 +98,25 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   X, Y = np.meshgrid(xx,yy)
   X_shape, Y_shape = X.shape, Y.shape
   X_flat, Y_flat = X.flatten(), Y.flatten()
+  print('Total samples: ', len(X_flat))
+  likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(len(xx))]
+  if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all([os.path.exists(lgf) for lgf in likelihood_grid_files]):
+    log_likelihood_flat = np.empty(len(X_flat))
+    for ii, lgf in enumerate(likelihood_grid_files):
+      log_likelihood_flat[ii] = np.load(lgf)
+    np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
   if os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
     log_likelihood_flat = np.load(outdir + 'likelihood_on_a_grid.npy')
-    # 2D plot
     zv1 = log_likelihood_flat.reshape(X_shape)
+    # Evidence calculation
+    xy_limits = ((-17.5,-13.5),(0.02004008, 5.))
+    evobj = im.AnalyticalEvidence2D(zv1,(X,Y),xy_limits)
+    log_z = evobj.logz()
+    zz = evobj.z()
+
     zv1[np.isnan(zv1)] = np.min(log_likelihood_flat[~np.isnan(log_likelihood_flat)]) # To replace nans by minimum values
+
+    # 2D plot
     plt.imshow(zv1,origin='lower',extent=[-20.,-10.,0.,10.],vmin=1323000, vmax=1327000)
     plt.xlabel('mu_lg_A')
     plt.ylabel('sig_lg_A')
@@ -129,33 +144,105 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1d-2.png')
     plt.close()
+    # 1D zoomed 2
+    for ii in [125,245,250,255]:
+      plt.semilogy(Y[1:25,ii],zv1[1:25,ii],linestyle='-',label='mu_lg_A='+str(X[0,ii]))
+    plt.xlabel('sigma_lg_A')
+    plt.ylabel('log_L')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-1d-3.png')
+    plt.close()
+
+    # To plot unlogged likelihood
+    zv1s = zv1.shape
+    zv1_flat = zv1.flatten()
+    # Create a mask for values that are too large - numerical artifacts (look at previous plots).
+    # This is for normalization by the largest value. Values too small will be turned to -inf naturally.
+    max_zv_for_norm = np.max([np.max(zv1[1:25,ii]) for ii in [125,245,250,255]])
+    zv1_flat[zv1_flat > max_zv_for_norm] = max_zv_for_norm
+    mp_zv1 = mp.matrix(zv1_flat)
+    exp_zv1_flat = mp.matrix([[mp.e**val for val in mp_zv1]])
+    exp_zv1_flat_posterior = exp_zv1_flat*(1/(evobj.xx[0,-1]-evobj.xx[0,0]))*(1/(evobj.yy[-1,0]-evobj.yy[0,0]))/zz # - max(exp_zv1_flat) + 1e6
+    exp_zv1_posterior = np.array([float(val) for val in exp_zv1_flat_posterior]).reshape(zv1s)
+
+    # 2D plot posterior probability
+    plt.imshow(exp_zv1_posterior,origin='lower',extent=[-20.,-10.,0., 10.])#,vmin=1323000, vmax=1327000)
+    plt.xlabel('mu_lg_A')
+    plt.ylabel('sig_lg_A')
+    plt.colorbar(label='Posterior probability')
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-posterior.png')
+    plt.close()
+
+    # 2D plot posterior probability - zoomed in at evidence integration boundaries
+    exp_zv1_posterior_z = exp_zv1_posterior[:,evobj.mask[0]]
+    exp_zv1_posterior_z = exp_zv1_posterior_z[evobj.mask[1],:]
+    plt.imshow(exp_zv1_posterior_z,origin='lower',extent=[-17.5,-13.5,0.02004008, 5.])#,vmin=1323000, vmax=1327000)
+    plt.xlabel('mu_lg_A')
+    plt.ylabel('sig_lg_A')
+    plt.colorbar(label='Posterior probability')
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-posterior_z.png')
+    plt.close()
 
   else:
-    log_likelihood_flat = np.empty(len(X_flat))
-    for ii, XY_ii in enumerate(zip(X_flat, Y_flat)):
+    if opts.save_iterations >= 0:
+      t0 = time.time()
       is_likelihood.parameters = {
-        'mu_lg_A': XY_ii[0],
-        'sig_lg_A': XY_ii[1],
+        'mu_lg_A': X_flat[opts.save_iterations],
+        'sig_lg_A': Y_flat[opts.save_iterations],
         'low_lg_A': -20.,
         'high_lg_A': -10.,
       }
-      log_likelihood_flat[ii] = is_likelihood.log_likelihood()
-      print(ii,'/',len(X_flat))
-    np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat) 
+      log_likelihood_iter = is_likelihood.log_likelihood()
+      t1 = time.time()
+      print('Elapsed time: ',t1-t0)
+      np.save(outdir + 'likelihood_on_a_grid_' + str(opts.save_iterations) + '.npy', log_likelihood_iter)
+      print('Saved ', opts.save_iterations, ' in ', outdir)
+    else:
+      log_likelihood_flat = np.empty(len(X_flat))
+      for ii, XY_ii in enumerate(zip(X_flat, Y_flat)):
+        is_likelihood.parameters = {
+          'mu_lg_A': XY_ii[0],
+          'sig_lg_A': XY_ii[1],
+          'low_lg_A': -20.,
+          'high_lg_A': -10.,
+        }
+        log_likelihood_flat[ii] = is_likelihood.log_likelihood()
+        print(ii,'/',len(X_flat))
+      np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat) 
     exit()
 elif 'gw_log10_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['gw_log10_A'].minimum, hp_priors['gw_log10_A'].maximum, params.grid_size)
+  likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(len(xx))]
+  if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all([os.path.exists(lgf) for lgf in likelihood_grid_files]):
+    log_likelihood_flat = np.empty(len(xx))
+    for ii, lgf in enumerate(likelihood_grid_files):
+      log_likelihood_flat[ii] = np.load(lgf)
+    np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+  elif np.any([os.path.exists(lgf) for lgf in likelihood_grid_files]):
+    mf = np.array(likelihood_grid_files)[~np.array([os.path.exists(lgf) for lgf in likelihood_grid_files])]
+    print('Partial samples of gw_log10_A are found. Missing files: \n', mf)
   if os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
 
     log_likelihood_flat = np.load(outdir + 'likelihood_on_a_grid.npy')
 
     # Evidence evaluation
-    log_l_mp = mp.matrix(log_likelihood_flat)
-    l_mp = mp.matrix([[mp.e**val for val in log_l_mp]])
-    int_l = mp.fsum(mp.matrix([[(l_mp[ii]+l_mp[ii-1])/2 for ii in range(1,len(l_mp))]]))
+    #log_l_mp = mp.matrix(log_likelihood_flat)
+    #l_mp = mp.matrix([[mp.e**val for val in log_l_mp]])
+    #int_l = mp.fsum(mp.matrix([[(l_mp[ii]+l_mp[ii-1])/2 for ii in range(1,len(l_mp))]]))
     # Times integration step, times constant uniform prior
-    log_z = mp.log(int_l*(xx[1]-xx[0])/(xx[-1]-xx[0]))
+    #log_z = mp.log(int_l*(xx[1]-xx[0])/(xx[-1]-xx[0]))
+    log_z = im.AnalyticalEvidence1D(log_likelihood_flat,xx).logz()
     print('log_Z = ', float(log_z))
+
+    # For a specific range
+    xx1 = xx[53:140] # -13.5 -17.5
+    log_l_mp_1 = mp.matrix(log_likelihood_flat[53:140])
+    l_mp_1 = mp.matrix([[mp.e**val for val in log_l_mp_1]])
+    int_l_1 = mp.fsum(mp.matrix([[(l_mp_1[ii]+l_mp_1[ii-1])/2 for ii in range(1,len(l_mp_1))]]))
+    log_z_1 = mp.log(int_l_1*(xx1[1]-xx1[0])/(xx1[-1]-xx1[0]))
 
     # Loading old results to compare
     result = '/home/bgonchar/correlated_noise_pta_2020/params/ppta_dr2_snall_wnfix_pe_common_pl_factorized_30_nf_20210126.dat'
@@ -189,17 +276,28 @@ elif 'gw_log10_A' in hp_priors.keys():
     plt.legend()
     plt.savefig(outdir+'logL-signal-2.png')
     plt.close()
-
-    import ipdb; ipdb.set_trace()
   else:
-    log_likelihood_flat = np.empty(len(xx))
-    for ii, xx_ii in enumerate(xx):
+    t0 = time.time()
+    if opts.save_iterations >= 0:
       is_likelihood.parameters = {
-        'gw_log10_A': xx_ii,
+        'gw_log10_A': xx[opts.save_iterations],
       }
-      log_likelihood_flat[ii] = is_likelihood.log_likelihood()
-      print(ii,'/',len(xx))
-    np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+      log_likelihood_iter = is_likelihood.log_likelihood()
+      t1 = time.time()
+      print('Elapsed time: ',t1-t0)
+      np.save(outdir + 'likelihood_on_a_grid_' + str(opts.save_iterations) + '.npy', log_likelihood_iter)
+      print('Saved ', opts.save_iterations, ' in ', outdir)
+    else:
+      log_likelihood_flat = np.empty(len(xx))
+      for ii, xx_ii in enumerate(xx):
+        is_likelihood.parameters = {
+          'gw_log10_A': xx_ii,
+        }
+        log_likelihood_flat[ii] = is_likelihood.log_likelihood()
+        print(ii,'/',len(xx))
+        t1 = time.time()
+        print('Elapsed time: ',t1-t0)
+      np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
     exit()
   pass
 
