@@ -3,6 +3,7 @@ import time
 import os.path
 
 from scipy.integrate import simps
+from scipy.special import logsumexp
 import numpy as np
 
 from enterprise_warp import results
@@ -15,9 +16,12 @@ class ImportanceLikelihoodSignal(Likelihood):
   posteriors: list with pandas.DataFrame, bilby output with proposal likelihoods
   obj_likelihoods_targ: list of bilby_warp.PTABilbyLikelihood with target likelihoods
   log_evidences: list of float, log evidence for proposal likelihoods
+
+  post_draw_rs: int or other, for Pandas, to draw the same posterior samples for
+  parallel runs. Without it, different samples will scramble the results.
   """
   def __init__(self, posteriors, obj_likelihoods_targ, prior, 
-               log_evidences, max_samples=1e100,
+               log_evidences, max_samples=1e100, post_draw_rs=777,
                stl_file="", grid_size=300, save_iterations=-1):
 
     #if not isinstance(prior, Model):
@@ -31,7 +35,7 @@ class ImportanceLikelihoodSignal(Likelihood):
     for posterior in posteriors:
       print('N posterior samples: ', len(posterior), '; max: ', max_samples)
       if len(posterior)>=max_samples:
-        self.posteriors.append(posterior.sample(max_samples))
+        self.posteriors.append(posterior.sample(max_samples, random_state=post_draw_rs))
       else:
         self.posteriors.append(posterior)
     self.obj_likelihoods_targ = obj_likelihoods_targ
@@ -65,7 +69,9 @@ class ImportanceLikelihoodSignal(Likelihood):
 
   def log_likelihood_ratio(self):
     # First sum for likelihood ratios over self.n_posteriors, outter sum for log ratios over self.n_psrs
-    return float(np.sum(np.log(np.sum(np.exp(self.log_likelihoods_target - self.log_likelihoods_proposal), axis=1) / self.n_posteriors)))
+    #return float(np.sum(np.log(np.sum(np.exp(self.log_likelihoods_target - self.log_likelihoods_proposal), axis=1) / self.n_posteriors)))
+    #scaling_factor - what it should be? https://lips.cs.princeton.edu/computing-log-sum-exp/
+    return float(np.sum(logsumexp(self.log_likelihoods_target - self.log_likelihoods_proposal,axis=1) - np.log(self.n_posteriors)))
 
   def log_likelihood_ratio_wrapper(self):
     self.update_parameter_samples(self.parameters)
@@ -86,10 +92,10 @@ class ImportanceLikelihoodSignal(Likelihood):
 
 class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
   def __init__(self, posteriors, obj_likelihoods_targ, prior,
-               log_evidences, max_samples=1e100,
+               log_evidences, max_samples=1e100, post_draw_rs=777,
                stl_file="", grid_size=300, save_iterations=-1):
 
-    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations)
+    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, post_draw_rs=post_draw_rs, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations)
     self.qc_samples = np.linspace(-20., -10., grid_size) #100+1) # A_qc (gamma_qc) sample grid
     self.prior_for_qc_samples = np.empty(len(self.qc_samples))
     self.log_likelihoods_target_unmarginalized = np.empty(self.data_shape + (len(self.qc_samples),), dtype=np.longdouble)
@@ -99,7 +105,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
     if stl_file!="" and os.path.exists(stl_file):
       self.log_likelihoods_target_unmarginalized = np.load(stl_file)
     elif stl_file!="" and np.all([os.path.exists(ff) for ff in stl_iter_files]):
-      for qc_sample_kk, ff in stl_iter_files:
+      for qc_sample_kk, ff in enumerate(stl_iter_files):
         self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = np.load(ff)
       np.save(stl_file, self.log_likelihoods_target_unmarginalized)
     else:
@@ -129,7 +135,9 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
   def log_likelihood_ratio_wrapper(self):
     self.evaluate_prior_for_qc_samples()
     # marginalizing target likelihood over sampled prior
-    self.log_likelihoods_target = simps(self.log_likelihoods_target_unmarginalized * self.prior_for_qc_samples, x=self.qc_samples, axis=2)
+    self.log_likelihoods_target = logsumexp(self.log_likelihoods_target_unmarginalized + np.log(self.prior_for_qc_samples)[np.newaxis,np.newaxis,:], axis=2) - np.log(self.qc_samples[1]-self.qc_samples[0])
+    # Below is incorrect
+    #self.log_likelihoods_target = simps(self.log_likelihoods_target_unmarginalized * self.prior_for_qc_samples, x=self.qc_samples, axis=2)
     logl_ratio = self.log_likelihood_ratio()
     if logl_ratio != np.inf:
       return self.log_likelihood_ratio()

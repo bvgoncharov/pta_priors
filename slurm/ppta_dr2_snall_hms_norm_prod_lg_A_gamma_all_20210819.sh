@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_norm_prod_lg_A_gamma_all
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_norm_prod_lg_A_gamma_all_%A_%a.out
+#SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_norm_prod_lg_A_gamma_all_%A_%a.out
 #SBATCH --ntasks=4
 #SBATCH --time=0-23
 #SBATCH --mem-per-cpu=2G

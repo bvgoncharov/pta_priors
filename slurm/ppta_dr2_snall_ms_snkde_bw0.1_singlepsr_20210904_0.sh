@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_ms_snkde_bw0.1_spsr
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_ms_snkde_bw0.1_spsr_%A_%a.out
+#SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_ms_snkde_bw0.1_spsr_%A_%a.out
 #SBATCH --ntasks=4
 #SBATCH --time=0-23
 #SBATCH --mem-per-cpu=4G

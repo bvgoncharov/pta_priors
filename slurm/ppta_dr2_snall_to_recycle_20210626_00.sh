@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_to_rcl
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_to_rcl_%A_%a.out
+#SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_to_rcl_%A_%a.out
 #SBATCH --ntasks=128
 #SBATCH --time=0-5
 #SBATCH --mem-per-cpu=3G

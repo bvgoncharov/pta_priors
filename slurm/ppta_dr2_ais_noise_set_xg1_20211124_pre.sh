@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_ais_noise_gx3_20211124_p
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_ais_noise_gx3_20211124_p_%A_%a.out
+#SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_ais_noise_gx3_20211124_p_%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --time=30:00
 #SBATCH --mem-per-cpu=3G

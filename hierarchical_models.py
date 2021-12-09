@@ -157,8 +157,14 @@ def norm_lg_A(dataset, mu_lg_A, sig_lg_A, suffix='red_noise'):
 
 def norm_trunc_lg_A(dataset, mu_lg_A, sig_lg_A, low_lg_A, \
                     high_lg_A, suffix='red_noise'):
+
+  # Setting zero probability to "impossible" values
+  mask_low_lg_A = dataset[suffix+'_log10_A'] > low_lg_A
+  mask_high_lg_A = dataset[suffix+'_log10_A'] < high_lg_A
+
   return norm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A)/\
-         norm_area(mu_lg_A, sig_lg_A, low_lg_A, high_lg_A)
+         norm_area(mu_lg_A, sig_lg_A, low_lg_A, high_lg_A)*\
+         mask_low_lg_A * mask_high_lg_A
 
 def norm_gamma(dataset, mu_gam, sig_gam, suffix='red_noise'):
   return norm(dataset, suffix+'_gamma', mu_gam, sig_gam)
@@ -607,6 +613,9 @@ def parse_commandline():
   parser.add_option("-I", "--save_iterations", default=-1, help="Save \
                     likelihood for each grid point. -1: off, >=0: \
                     grid point", type=int)
+  parser.add_option("-N", "--n_grid_iter", default=1, help="Number of \
+                    likelihood samples to save in one file, for analytical \
+                    sampling of the likelihood.", type=int)
 
   # Parameters below are not important, added for compatibility with old code:
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=p_pe_rnp20210627_bmc
-#SBATCH --output=/fred/oz002/bgoncharov/correlated_noise_logs/ppta_snall_pe_rnprior_20210627_bmc_%A_%a.out
+#SBATCH --output=/fred/oz031/correlated_noise_logs/ppta_snall_pe_rnprior_20210627_bmc_%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --time=1-21
 #SBATCH --mem-per-cpu=2G

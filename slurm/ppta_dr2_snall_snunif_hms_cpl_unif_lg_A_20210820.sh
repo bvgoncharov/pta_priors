@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=ppta_hi_cpl_unif_lg_A
-#SBATCH --output=/fred/oz002/bgoncharov/logs_pta_gwb_priors/ppta_hi_cpl_unif_prod_lg_A_%A_%a.out
+#SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_hi_cpl_unif_prod_lg_A_%A_%a.out
 #SBATCH --ntasks=8
 #SBATCH --time=0-5
 #SBATCH --mem-per-cpu=2G

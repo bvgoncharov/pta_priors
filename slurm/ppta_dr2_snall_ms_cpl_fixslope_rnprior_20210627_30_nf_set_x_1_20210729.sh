@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=p_ms_cpl_fixsl_30nf_rnp20210627_x1_bmc
-#SBATCH --output=/fred/oz002/bgoncharov/correlated_noise_logs/ppta_snall_ms_cpl_fixslope_rnprior_20210627_30_nf_set_x_1_bmc_%A_%a.out
+#SBATCH --output=/fred/oz031/correlated_noise_logs/ppta_snall_ms_cpl_fixslope_rnprior_20210627_30_nf_set_x_1_bmc_%A_%a.out
 #SBATCH --ntasks=32
 #SBATCH --time=0-1
 #SBATCH --mem-per-cpu=5G

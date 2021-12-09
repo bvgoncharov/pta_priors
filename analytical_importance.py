@@ -99,11 +99,11 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   X_shape, Y_shape = X.shape, Y.shape
   X_flat, Y_flat = X.flatten(), Y.flatten()
   print('Total samples: ', len(X_flat))
-  likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(len(xx))]
+  likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(int(len(X_flat)/opts.n_grid_iter))]
   if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all([os.path.exists(lgf) for lgf in likelihood_grid_files]):
     log_likelihood_flat = np.empty(len(X_flat))
     for ii, lgf in enumerate(likelihood_grid_files):
-      log_likelihood_flat[ii] = np.load(lgf)
+      log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.load(lgf)
     np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
   if os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
     log_likelihood_flat = np.load(outdir + 'likelihood_on_a_grid.npy')
@@ -153,6 +153,15 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1d-3.png')
     plt.close()
+    # 1D zoomed 4
+    for ii in [334,299]:
+      plt.semilogy(Y[1:25,ii],zv1[1:25,ii]/simps(zv1[1:25,ii],x=Y[1:25,ii]),linestyle='-',label='mu_lg_A='+str(X[0,ii]))
+    plt.xlabel('sigma_lg_A')
+    plt.ylabel('Normalized probability')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-1d-4.png')
+    plt.close()
 
     # To plot unlogged likelihood
     zv1s = zv1.shape
@@ -186,16 +195,37 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.savefig(outdir + 'logL-noise-posterior_z.png')
     plt.close()
 
+    # Marginalized posteriors
+    mu_marg_over_sig = simps(exp_zv1_posterior,axis=0,x=yy)
+    sig_marg_over_mu = simps(exp_zv1_posterior,axis=1,x=xx)
+
+    plt.plot(xx, mu_marg_over_sig)
+    plt.xlabel('mu_lg_A')
+    plt.ylabel('Marginalized posterior')
+    plt.savefig(outdir + 'logL-noise-posterior-mu.png')
+    plt.close()
+
+    plt.plot(yy, sig_marg_over_mu)
+    plt.xlabel('sig_lg_A')
+    plt.ylabel('Marginalized posterior')
+    plt.savefig(outdir + 'logL-noise-posterior-sig.png')
+    plt.close()
+
   else:
     if opts.save_iterations >= 0:
       t0 = time.time()
-      is_likelihood.parameters = {
-        'mu_lg_A': X_flat[opts.save_iterations],
-        'sig_lg_A': Y_flat[opts.save_iterations],
-        'low_lg_A': -20.,
-        'high_lg_A': -10.,
-      }
-      log_likelihood_iter = is_likelihood.log_likelihood()
+      X_flat_iter = X_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
+      Y_flat_iter = Y_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
+      log_likelihood_iter = np.empty(len(X_flat_iter))
+      for ii, XY_ii in enumerate(zip(X_flat_iter, Y_flat_iter)):
+        is_likelihood.parameters = {
+          'mu_lg_A': XY_ii[0], #X_flat[opts.save_iterations],
+          'sig_lg_A': XY_ii[1], #Y_flat[opts.save_iterations],
+          'low_lg_A': -20.,
+          'high_lg_A': -10.,
+        }
+        #log_likelihood_iter.append( is_likelihood.log_likelihood() )
+        log_likelihood_iter[ii] = is_likelihood.log_likelihood()
       t1 = time.time()
       print('Elapsed time: ',t1-t0)
       np.save(outdir + 'likelihood_on_a_grid_' + str(opts.save_iterations) + '.npy', log_likelihood_iter)
@@ -267,8 +297,11 @@ elif 'gw_log10_A' in hp_priors.keys():
     plt.savefig(outdir+'logL-signal.png')
     plt.close()
     # zoomed in
-    plt.plot(xx[0:135],log_likelihood_flat[0:135] + np.log(1/(xx[-1]-xx[0])) - float(log_z), label='Signal target posterior')
-    plt.plot(result_obj.x_vals, np.log(result_obj.prob_factorized_norm),label='Factorized (ApJL)')
+    #up_idx = 135 # Real data PPTA DR2
+    up_idx = 200 # Simulation
+    plt.plot(xx[0:up_idx],log_likelihood_flat[0:up_idx] + np.log(1/(xx[-1]-xx[0])) - float(log_z), label='Signal target posterior')
+    #plt.plot(result_obj.x_vals, np.log(result_obj.prob_factorized_norm),label='Factorized (ApJL)')
+    plt.axvline(-13.3, color='red', label='Simulated value')
     plt.ylim([-16, 4])
     plt.xlim([-20,-12])
     plt.xlabel('gw_log10_A')

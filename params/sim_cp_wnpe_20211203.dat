@@ -1,0 +1,12 @@
+paramfile_label: sim_cp_wnpe
+datadir: /fred/oz031/pta_gwb_priors_out/sim_data/cp_211206_041322/
+out: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/
+overwrite: True
+array_analysis: False
+sampler: ptmcmcsampler
+SCAMweight: 30
+AMweight: 15
+DEweight: 50
+nsamp: 1000000
+{0}
+noise_model_file: /fred/oz031/pta_gwb_priors_out/sim_data/wnpe_universal.json
