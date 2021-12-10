@@ -3,7 +3,7 @@
 #SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_ais_signal_gx3_iter_20211123_%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --time=30:00
-#SBATCH --mem-per-cpu=2G
+#SBATCH --mem-per-cpu=3G
 #SBATCH --tmp=3G
 #SBATCH --array=0-299
 

@@ -2,10 +2,10 @@
 #SBATCH --job-name=ppta_to_rcl
 #SBATCH --output=/fred/oz031/logs_pta_gwb_priors/ppta_to_rcl_%A_%a.out
 #SBATCH --ntasks=64
-#SBATCH --time=08:00
+#SBATCH --time=05:00
 #SBATCH --mem-per-cpu=1G
 #SBATCH --tmp=4G
-#SBATCH --array=2,20,10,16,17,19,22,25
+#SBATCH --array=8
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]

@@ -9,6 +9,7 @@ Example: python run_importance.py --result "/home/bgonchar/pta_gwb_priors/params
 import os
 import copy
 import time
+import tqdm
 #import pickle
 import numpy as np
 from scipy.interpolate import griddata
@@ -37,7 +38,8 @@ opts.exclude = params.exclude
 #params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
 hr = im.ImportanceResult(opts)#, suffix=params.par_suffix)
 hr.main_pipeline()
-
+for chain in hr.chains:
+  print(chain.keys()[0].split('_')[0],': ',len(chain),'samples available')
 # Making opts from hierarchical_models compatible with enterprise_warp
 # To make compatible with the next part but incompatible with the previous one
 opts_ew = copy.copy(opts)
@@ -217,7 +219,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
       X_flat_iter = X_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
       Y_flat_iter = Y_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
       log_likelihood_iter = np.empty(len(X_flat_iter))
-      for ii, XY_ii in enumerate(zip(X_flat_iter, Y_flat_iter)):
+      for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat_iter, Y_flat_iter)), total=len(X_flat_iter)):
         is_likelihood.parameters = {
           'mu_lg_A': XY_ii[0], #X_flat[opts.save_iterations],
           'sig_lg_A': XY_ii[1], #Y_flat[opts.save_iterations],
@@ -232,7 +234,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
       print('Saved ', opts.save_iterations, ' in ', outdir)
     else:
       log_likelihood_flat = np.empty(len(X_flat))
-      for ii, XY_ii in enumerate(zip(X_flat, Y_flat)):
+      for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat, Y_flat)), total=len(X_flat)):
         is_likelihood.parameters = {
           'mu_lg_A': XY_ii[0],
           'sig_lg_A': XY_ii[1],
@@ -297,11 +299,11 @@ elif 'gw_log10_A' in hp_priors.keys():
     plt.savefig(outdir+'logL-signal.png')
     plt.close()
     # zoomed in
-    #up_idx = 135 # Real data PPTA DR2
-    up_idx = 200 # Simulation
+    up_idx = 135 # Real data PPTA DR2
+    #up_idx = 200 # Simulation
     plt.plot(xx[0:up_idx],log_likelihood_flat[0:up_idx] + np.log(1/(xx[-1]-xx[0])) - float(log_z), label='Signal target posterior')
-    #plt.plot(result_obj.x_vals, np.log(result_obj.prob_factorized_norm),label='Factorized (ApJL)')
-    plt.axvline(-13.3, color='red', label='Simulated value')
+    plt.plot(result_obj.x_vals, np.log(result_obj.prob_factorized_norm),label='Factorized (ApJL)')
+    #plt.axvline(-13.3, color='red', label='Simulated value')
     plt.ylim([-16, 4])
     plt.xlim([-20,-12])
     plt.xlabel('gw_log10_A')
