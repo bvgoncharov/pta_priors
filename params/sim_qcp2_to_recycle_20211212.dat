@@ -1,15 +1,15 @@
-paramfile_label: sim_qcp_rcl_20211203
-datadir: /fred/oz031/pta_gwb_priors_out/sim_data/qcp_211206_041500/
+paramfile_label: sim_qcp2_rcl_20211212
+datadir: /fred/oz031/pta_gwb_priors_out/sim_data/qcp2_211212_233637/
 out: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/
 overwrite: True
 array_analysis: False
 sampler: pypolychord
 nlive: 1000
 precision_criterion: 0.005
-boost_posterior: 30
+boost_posterior: 60
 efac: -1
 equad: -1
 ecorr: -1
-noisefiles: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20211203_wnpe_sim_qcp_wnpe/noisefiles/
+noisefiles: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20211203_wnpe_sim_qcp2_211212_wnpe/noisefiles/
 {0}
 noise_model_file: /fred/oz031/pta_gwb_priors_out/sim_data/wnpe_universal.json

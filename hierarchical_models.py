@@ -616,6 +616,8 @@ def parse_commandline():
   parser.add_option("-N", "--n_grid_iter", default=1, help="Number of \
                     likelihood samples to save in one file, for analytical \
                     sampling of the likelihood.", type=int)
+  parser.add_option("-C", "--incomplete", default=0, help="Proceed with \
+                    incomplete grid likelihood evaluation.", type=int)
 
   # Parameters below are not important, added for compatibility with old code:
 

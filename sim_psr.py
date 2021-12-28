@@ -14,9 +14,15 @@ N_psrs = 26
 
 # qCP, from Gaussian truncated https://stackoverflow.com/a/37338391
 # a = (lower - mu) / sigma, b = (upper - mu) / sigma
-gamma = truncnorm.rvs(a=(0-13/3)/2, b=(10-13/3)/2, loc=13/3, scale=2, size=N_psrs)
-log10_AA = truncnorm.rvs((-20-(-13.3))/2, (-10-(-13.3))/2, loc=-13.3, scale=2, size=N_psrs)
-name = 'qcp'
+#gamma = truncnorm.rvs(a=(0-13/3)/2, b=(10-13/3)/2, loc=13/3, scale=2, size=N_psrs)
+#log10_AA = truncnorm.rvs((-20-(-13.3))/2, (-10-(-13.3))/2, loc=-13.3, scale=2, size=N_psrs)
+#name = 'qcp'
+
+# qCP2, gamma fixed
+# a = (lower - mu) / sigma, b = (upper - mu) / sigma
+#gamma = np.repeat(13/3, N_psrs)
+#log10_AA = truncnorm.rvs((-20-(-13.3))/2, (-10-(-13.3))/2, loc=-13.3, scale=2, size=N_psrs)
+#name = 'qcp2'
 
 # CP, delta function
 #gamma = np.repeat(13/3, N_psrs)
@@ -53,7 +59,7 @@ for ii in range(N_psrs):
   LT.add_rednoise(psr,10**log10_AA[ii],gamma[ii])
 
   # Do or not to do...
-  psr.fit() # Does not work for fakepulsar
+  #psr.fit() # Does not work for fakepulsar
 
   # Rename pulsar
   psr.name = 'J' + "{0:09.4f}".format(ii/10000).replace('.','-')

@@ -22,7 +22,7 @@ class ImportanceLikelihoodSignal(Likelihood):
   """
   def __init__(self, posteriors, obj_likelihoods_targ, prior, 
                log_evidences, max_samples=1e100, post_draw_rs=777,
-               stl_file="", grid_size=300, save_iterations=-1):
+               stl_file="", grid_size=300, save_iterations=-1, suffix='gw'):
 
     #if not isinstance(prior, Model):
     #  prior = Model([prior])
@@ -30,6 +30,7 @@ class ImportanceLikelihoodSignal(Likelihood):
     super(ImportanceLikelihoodSignal, self).__init__({})#prior.parameters)
 
     self.prior = prior
+    self.suffix = suffix
     #self.posteriors = [posterior.sample(max_samples) for posterior in posteriors]
     self.posteriors = []
     for posterior in posteriors:
@@ -73,8 +74,13 @@ class ImportanceLikelihoodSignal(Likelihood):
     #scaling_factor - what it should be? https://lips.cs.princeton.edu/computing-log-sum-exp/
     return float(np.sum(logsumexp(self.log_likelihoods_target - self.log_likelihoods_proposal,axis=1) - np.log(self.n_posteriors)))
 
-  def log_likelihood_ratio_wrapper(self):
+  def n_eff(self):
     self.update_parameter_samples(self.parameters)
+    weight = np.exp(self.log_likelihoods_target - self.log_likelihoods_proposal)
+    return np.sum(weight,axis=1)**2/np.sum(weight**2,axis=1)
+
+  def log_likelihood_ratio_wrapper(self):
+    self.log_likelihood()
     self.evaluate_target_likelihood()
     return self.log_likelihood_ratio()
 
@@ -93,9 +99,9 @@ class ImportanceLikelihoodSignal(Likelihood):
 class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
   def __init__(self, posteriors, obj_likelihoods_targ, prior,
                log_evidences, max_samples=1e100, post_draw_rs=777,
-               stl_file="", grid_size=300, save_iterations=-1):
+               stl_file="", grid_size=300, save_iterations=-1, suffix='gw'):
 
-    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, post_draw_rs=post_draw_rs, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations)
+    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, post_draw_rs=post_draw_rs, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations, suffix=suffix)
     self.qc_samples = np.linspace(-20., -10., grid_size) #100+1) # A_qc (gamma_qc) sample grid
     self.prior_for_qc_samples = np.empty(len(self.qc_samples))
     self.log_likelihoods_target_unmarginalized = np.empty(self.data_shape + (len(self.qc_samples),), dtype=np.longdouble)
@@ -116,7 +122,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
         print('Pre-computing target likelihood, total samples: ', len(self.qc_samples))
         for qc_sample_kk, qc_sample in tqdm.tqdm(enumerate(self.qc_samples),total=len(self.qc_samples)):
           #print('Sample ', qc_sample_kk, '/', len(self.qc_samples))
-          self.update_parameter_samples({'gw_log10_A': qc_sample})
+          self.update_parameter_samples({self.suffix+'_log10_A': qc_sample})
           self.evaluate_target_likelihood()
           self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = self.log_likelihoods_target
         if stl_file is not None:
@@ -125,7 +131,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
           exit()
       elif stl_file is not None:
         t0 = time.time()
-        self.update_parameter_samples({'gw_log10_A': self.qc_samples[save_iterations]})
+        self.update_parameter_samples({self.suffix+'_log10_A': self.qc_samples[save_iterations]})
         self.evaluate_target_likelihood()
         t1 = time.time()
         print('Elapsed time: ',t1-t0)
@@ -145,7 +151,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
       return 1e100
 
   def evaluate_prior_for_qc_samples(self):
-    self.prior_for_qc_samples = self.prior({'gw_log10_A': self.qc_samples}, **self.parameters)
+    self.prior_for_qc_samples = self.prior({self.suffix+'_log10_A': self.qc_samples}, **self.parameters)
 
 # ================================================== #
 
@@ -200,6 +206,7 @@ class ImportanceResult(results.BilbyWarpResult):
 # =================================================  #
 
 from mpmath import mp
+#mp.prec = 170
 
 class AnalyticalEvidence1D(object):
   """

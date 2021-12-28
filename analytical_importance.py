@@ -16,6 +16,13 @@ from scipy.interpolate import griddata
 from scipy.integrate import simps
 from mpmath import mp
 import matplotlib.pyplot as plt
+plt.rcParams.update({
+  "text.usetex": True,
+  "font.family": "serif",
+  #"font.serif": ["Palatino"],
+})
+font = {'family' : 'serif',
+        'size'   : 17}
 
 import bilby
 
@@ -51,8 +58,9 @@ opts_ew.wipe_old_output = 0
 
 label = params.paramfile_label
 outdir = hr.outdir_all + label + '/'
+print('Output directory: ', outdir)
 if not os.path.exists(outdir):
-  raise ValueError('Output directory does not exist: '+outdir)
+  raise ValueError('Output directory does not exist.')
 
 # Loading target likelihoods to sample (with CP)
 #tlo_file = outdir + '/target_likelihood_objs.pkl'
@@ -92,7 +100,10 @@ sp = hm.__dict__[params.model](suffix=params.par_suffix)
 
 # Constructing Signal likelihood
 if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
-  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations) #sp, hr.log_zs, max_samples=2)
+  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix) #sp, hr.log_zs, max_samples=2)
+
+ref_log10_A = -13.3 # simulation
+#ref_log10_A = -14.66
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -101,17 +112,33 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   X_shape, Y_shape = X.shape, Y.shape
   X_flat, Y_flat = X.flatten(), Y.flatten()
   print('Total samples: ', len(X_flat))
-  likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(int(len(X_flat)/opts.n_grid_iter))]
-  if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all([os.path.exists(lgf) for lgf in likelihood_grid_files]):
+  likelihood_grid_files = np.array([outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(int(len(X_flat)/opts.n_grid_iter))])
+  likelihood_grid_files_exist = np.array([os.path.exists(lgf) for lgf in likelihood_grid_files])
+  if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all(likelihood_grid_files_exist):
     log_likelihood_flat = np.empty(len(X_flat))
     for ii, lgf in enumerate(likelihood_grid_files):
       log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.load(lgf)
     np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+  elif np.any(likelihood_grid_files_exist) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
+    print('Missing likelihood-on-a-grid files:')
+    for lgf in np.array(likelihood_grid_files)[~likelihood_grid_files_exist]:
+      print(lgf)
+    if opts.incomplete:
+      log_likelihood_flat = np.empty(len(X_flat))
+      for ii, lgf in enumerate(likelihood_grid_files):
+        if os.path.exists(lgf):
+          log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.load(lgf)
+        else:
+          log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.repeat(-100,opts.n_grid_iter)
+      np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
   if os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
     log_likelihood_flat = np.load(outdir + 'likelihood_on_a_grid.npy')
     zv1 = log_likelihood_flat.reshape(X_shape)
     # Evidence calculation
-    xy_limits = ((-17.5,-13.5),(0.02004008, 5.))
+    #xy_limits = ((-17.5,-13.5),(0.02004008, 5.)) # real data < 2000 samples
+    #xy_limits = ((-15.8,-14.2),(0.02004008, 1.5))
+    #xy_limits = ((-18.0,-12.0),(0.02004008, 10.)) # simulation 100 samples
+    xy_limits = ((-16.,-12.),(0.02004008, 4.)) # simulation 1600 samples
     evobj = im.AnalyticalEvidence2D(zv1,(X,Y),xy_limits)
     log_z = evobj.logz()
     zz = evobj.z()
@@ -119,46 +146,50 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     zv1[np.isnan(zv1)] = np.min(log_likelihood_flat[~np.isnan(log_likelihood_flat)]) # To replace nans by minimum values
 
     # 2D plot
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
     plt.imshow(zv1,origin='lower',extent=[-20.,-10.,0.,10.],vmin=1323000, vmax=1327000)
-    plt.xlabel('mu_lg_A')
-    plt.ylabel('sig_lg_A')
-    plt.colorbar(label='log_L')
+    axes.set_xlabel('$$\mu_{\log_{10} A}$$', fontdict=font)
+    axes.set_ylabel('$$\sigma_{\log_{10} A}$$', fontdict=font)
+    plt.colorbar(label='$\log\mathcal{L}$')
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1.png')
     plt.close()
     # 1D slice plots
     plt.figure()
     for ii in [0,125,250,325,499]:
-      plt.plot(Y[:,ii],zv1[:,ii],linestyle='-',label='mu_lg_A='+str(X[0,ii]))
+      plt.plot(Y[:,ii],zv1[:,ii],linestyle='-',label='$\mu_{lgA}='+str(X[0,ii])+'$')
     plt.xscale('log')
     plt.legend()
-    plt.xlabel('sigma_lg_A')
-    plt.ylabel('log_L')
+    plt.xlabel('$\sigma_{lgA}$')
+    plt.ylabel('$\log_L$')
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1d.png')
     plt.close()
     # 1D zoomed
     for ii in [125,250,265,325]:
-      plt.semilogy(Y[1:,ii],zv1[1:,ii],linestyle='-',label='mu_lg_A='+str(X[0,ii]))
-    plt.xlabel('sigma_lg_A')
-    plt.ylabel('log_L')
+      plt.semilogy(Y[1:,ii],zv1[1:,ii],linestyle='-',label='$mu_lg_A='+str(X[0,ii])+'$')
+    plt.xlabel('$\sigma_{lgA}$')
+    plt.ylabel('$\log_L$')
     plt.legend()
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1d-2.png')
     plt.close()
     # 1D zoomed 2
     for ii in [125,245,250,255]:
-      plt.semilogy(Y[1:25,ii],zv1[1:25,ii],linestyle='-',label='mu_lg_A='+str(X[0,ii]))
-    plt.xlabel('sigma_lg_A')
-    plt.ylabel('log_L')
+      plt.semilogy(Y[1:25,ii],zv1[1:25,ii],linestyle='-',label='$mu_lg_A='+str(X[0,ii])+'$')
+    plt.xlabel('$\sigma_{lgA}$')
+    plt.ylabel('$\log_L$')
     plt.legend()
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-1d-3.png')
     plt.close()
     # 1D zoomed 4
     for ii in [334,299]:
-      plt.semilogy(Y[1:25,ii],zv1[1:25,ii]/simps(zv1[1:25,ii],x=Y[1:25,ii]),linestyle='-',label='mu_lg_A='+str(X[0,ii]))
-    plt.xlabel('sigma_lg_A')
+      plt.semilogy(Y[1:25,ii],zv1[1:25,ii]/simps(zv1[1:25,ii],x=Y[1:25,ii]),linestyle='-',label='$mu_lg_A='+str(X[0,ii])+'$')
+    plt.xlabel('$\sigma_{lgA}$')
     plt.ylabel('Normalized probability')
     plt.legend()
     plt.tight_layout()
@@ -170,29 +201,76 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     zv1_flat = zv1.flatten()
     # Create a mask for values that are too large - numerical artifacts (look at previous plots).
     # This is for normalization by the largest value. Values too small will be turned to -inf naturally.
-    max_zv_for_norm = np.max([np.max(zv1[1:25,ii]) for ii in [125,245,250,255]])
-    zv1_flat[zv1_flat > max_zv_for_norm] = max_zv_for_norm
+    #max_zv_for_norm = np.max([np.max(zv1[1:25,ii]) for ii in [125,245,250,255]])
+    #zv1_flat[zv1_flat > max_zv_for_norm] = max_zv_for_norm
+    mp.prec = 170
     mp_zv1 = mp.matrix(zv1_flat)
     exp_zv1_flat = mp.matrix([[mp.e**val for val in mp_zv1]])
     exp_zv1_flat_posterior = exp_zv1_flat*(1/(evobj.xx[0,-1]-evobj.xx[0,0]))*(1/(evobj.yy[-1,0]-evobj.yy[0,0]))/zz # - max(exp_zv1_flat) + 1e6
     exp_zv1_posterior = np.array([float(val) for val in exp_zv1_flat_posterior]).reshape(zv1s)
 
+    # 1D zoomed 5 - for 1000 samples PPTA DR2
+    #idx_cp = 266 # PPTA DR2 results
+    idx_cp = 333 # simulation injection -13.3
+    sig_5 = Y[1:101,idx_cp]
+    post_5 = exp_zv1_posterior[1:101,idx_cp]
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(sig_5, post_5,label='$\mu_{\log_{10}A}='+str(X[0,idx_cp])+'$')
+    axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Posterior probability at fixed $\mu_{\log_{10}A}$', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.xlabel('$\sigma_{\log_{10}A}$')
+    plt.ylabel('Posterior probability at fixed $\mu_{\log_{10}A}$')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-1d-5.png')
+    plt.close()
+
     # 2D plot posterior probability
-    plt.imshow(exp_zv1_posterior,origin='lower',extent=[-20.,-10.,0., 10.])#,vmin=1323000, vmax=1327000)
-    plt.xlabel('mu_lg_A')
-    plt.ylabel('sig_lg_A')
-    plt.colorbar(label='Posterior probability')
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    im = plt.imshow(exp_zv1_posterior,origin='lower',extent=[params.mu_lg_A[0],params.mu_lg_A[1],params.sig_lg_A[0], params.sig_lg_A[1]], cmap=plt.get_cmap('viridis'))#,vmin=1323000, vmax=1327000)
+    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    ##plt.axhline(2,linestyle='--',color='red')
+    cb = plt.colorbar()
+    cb.set_label(label='Posterior probability',size=font['size'],family=font['family'])
+    cb.ax.tick_params(labelsize=font['size'])
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior.png')
+    plt.close()
+
+    plt.imshow(np.log(exp_zv1_posterior),origin='lower',extent=[params.mu_lg_A[0],params.mu_lg_A[1],params.sig_lg_A[0], params.sig_lg_A[1]], cmap=plt.get_cmap('viridis'),vmin=np.max(np.log(exp_zv1_posterior))-10, vmax=np.max(np.log(exp_zv1_posterior)))
+    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    #plt.axhline(2,linestyle='--',color='red')
+    plt.xlabel('$\mu_{\log_{10}A}$')
+    plt.ylabel('$\sigma_{\log_{10}A}$')
+    plt.colorbar(label='Log posterior probability')
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-log-posterior.png')
     plt.close()
 
     # 2D plot posterior probability - zoomed in at evidence integration boundaries
     exp_zv1_posterior_z = exp_zv1_posterior[:,evobj.mask[0]]
     exp_zv1_posterior_z = exp_zv1_posterior_z[evobj.mask[1],:]
-    plt.imshow(exp_zv1_posterior_z,origin='lower',extent=[-17.5,-13.5,0.02004008, 5.])#,vmin=1323000, vmax=1327000)
-    plt.xlabel('mu_lg_A')
-    plt.ylabel('sig_lg_A')
-    plt.colorbar(label='Posterior probability')
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    img = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten())#,vmin=1323000, vmax=1327000)
+    plt.xlim(xy_limits[0])
+    plt.ylim(xy_limits[1])
+    cb = plt.colorbar()
+    cb.set_label(label='Posterior probability',size=font['size'],family=font['family'])
+    cb.ax.tick_params(labelsize=font['size'])
+    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior_z.png')
     plt.close()
@@ -201,16 +279,52 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     mu_marg_over_sig = simps(exp_zv1_posterior,axis=0,x=yy)
     sig_marg_over_mu = simps(exp_zv1_posterior,axis=1,x=xx)
 
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
     plt.plot(xx, mu_marg_over_sig)
-    plt.xlabel('mu_lg_A')
-    plt.ylabel('Marginalized posterior')
+    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
     plt.savefig(outdir + 'logL-noise-posterior-mu.png')
     plt.close()
 
-    plt.plot(yy, sig_marg_over_mu)
-    plt.xlabel('sig_lg_A')
-    plt.ylabel('Marginalized posterior')
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(yy[1:], sig_marg_over_mu[1:])
+    ##plt.axvline(2,linestyle='--',color='red')
+    axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
     plt.savefig(outdir + 'logL-noise-posterior-sig.png')
+    plt.close()
+
+    # Marginalized zoomed posteriors
+    mu_marg_over_sig_z = simps(exp_zv1_posterior_z,axis=0,x=yy[evobj.mask[1]])
+    sig_marg_over_mu_z = simps(exp_zv1_posterior_z,axis=1,x=xx[evobj.mask[0]])
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(xx[evobj.mask[0]], mu_marg_over_sig_z)
+    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.savefig(outdir + 'logL-noise-posterior-mu-z.png')
+    plt.close()
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z)
+    ##plt.axvline(2,linestyle='--',color='red')
+    axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
     plt.close()
 
   else:
@@ -242,7 +356,6 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
           'high_lg_A': -10.,
         }
         log_likelihood_flat[ii] = is_likelihood.log_likelihood()
-        print(ii,'/',len(X_flat))
       np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat) 
     exit()
 elif 'gw_log10_A' in hp_priors.keys():
@@ -293,22 +406,29 @@ elif 'gw_log10_A' in hp_priors.keys():
     result_obj.main_pipeline([-20., -6.], plot_results = False, plot_psrs=False)
 
     # Likelihood times prior over evidence
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
     plt.plot(xx,log_likelihood_flat + np.log(1/(xx[-1]-xx[0])) - float(log_z))
-    plt.xlabel('gw_log10_A')
-    plt.ylabel('log_likelihood')
+    plt.xlabel('gw log10 A')
+    plt.ylabel('log likelihood')
     plt.savefig(outdir+'logL-signal.png')
     plt.close()
     # zoomed in
     up_idx = 135 # Real data PPTA DR2
     #up_idx = 200 # Simulation
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
     plt.plot(xx[0:up_idx],log_likelihood_flat[0:up_idx] + np.log(1/(xx[-1]-xx[0])) - float(log_z), label='Signal target posterior')
     plt.plot(result_obj.x_vals, np.log(result_obj.prob_factorized_norm),label='Factorized (ApJL)')
-    #plt.axvline(-13.3, color='red', label='Simulated value')
+    #plt.axvline(ref_log10_A, color='red', label='Simulated value')
     plt.ylim([-16, 4])
     plt.xlim([-20,-12])
-    plt.xlabel('gw_log10_A')
-    plt.ylabel('log_likelihood')
-    plt.legend()
+    axes.set_xlabel('$\log_{10}A$', fontdict=font)
+    axes.set_ylabel('Posterior probability', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    #plt.legend()
     plt.savefig(outdir+'logL-signal-2.png')
     plt.close()
   else:
