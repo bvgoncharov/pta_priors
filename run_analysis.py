@@ -41,6 +41,11 @@ def get_bilby_prior_dict(pta):
         priors[param.name] = bilby.core.prior.Normal( \
             param.prior._defaults['mu'], param.prior._defaults['sigma'], \
             param.name)
+      elif param.type=='truncnorm':
+        priors[param.name] = bilby.core.prior.TruncatedGaussian( \
+            param.prior._defaults['mu'], param.prior._defaults['sigma'], \
+            param.prior._defaults['min'], param.prior._defaults['max'], \
+            param.name)
       else:
         raise ValueError('Unknown prior type for translation into Bilby. \
                           Known types: Normal; Uniform.')
@@ -144,6 +149,17 @@ if params.sampler == 'ptmcmcsampler':
       exit()
 else:
     #priors = bilby_warp.get_bilby_prior_dict(pta[0])
+
+    # Special handling of truncated Normal priors
+    # (because they do not yet exist in enterprise)
+    for ii, param in enumerate(pta[0].params):
+      if 'TruncatedNormal' in param._typename:
+        pta[0].params[ii].type = 'truncnorm'
+        pta[0].params[ii].prior._defaults['min'] = \
+                          float(param._typename.split(',')[2])
+        pta[0].params[ii].prior._defaults['max'] = \
+                          float(param._typename.split(',')[3])
+
     priors = get_bilby_prior_dict(pta[0])
     for pkey, prior in priors.items():
       if type(prior) == bilby.core.prior.analytical.Normal:
@@ -153,6 +169,7 @@ else:
         elif 'log10_A' in pkey:
           priors[pkey].minimum = -20.
           priors[pkey].maximum = -6.
+
     parameters = dict.fromkeys(priors.keys())
     likelihood = bilby_warp.PTABilbyLikelihood(pta[0],parameters)
     label = os.path.basename(os.path.normpath(params.out))

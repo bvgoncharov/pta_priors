@@ -41,6 +41,14 @@ class ImportanceLikelihoodSignal(Likelihood):
         self.posteriors.append(posterior)
     self.obj_likelihoods_targ = obj_likelihoods_targ
 
+    # Make sure the required log10_A parameter is in the target likelihood
+    for olt in self.obj_likelihoods_targ:
+      if not suffix+'_log10_A' in olt.parameters.keys():
+        error_str = 'Parameter '+suffix+\
+                    '_log10_A is not in the target likelihood parameters: '+\
+                    ','.join(olt.parameters.keys())
+        raise ValueError(error_str)
+
     # self.data are cleaned posteriors turned into a list n_psr x n_samples with
     # elements dict with posterior samples
     self.data = []

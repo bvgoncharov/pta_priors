@@ -51,6 +51,14 @@ class PPTADR2Models(StandardModels):
     if option=="gpriorpl":
       log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
       gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
+    elif option=="tgpriorpl":
+      log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
+      gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
+      log10_A._typename = log10_A._typename.replace('Normal','TruncatedNormal')
+      gamma._typename = gamma._typename.replace('Normal','TruncatedNormal')
+      log10_A._typename = log10_A._typename.replace(')',',-20.,-10.,)')
+      gamma._typename = gamma._typename.replace(')',',0.,10.,)')
+
     elif option=="kdepl":
       with open(self.params.kdesn_file, 'rb') as kdef:
         kdesn = pickle.load(kdef)
@@ -58,7 +66,7 @@ class PPTADR2Models(StandardModels):
     else:
       log10_A = parameter.Uniform(self.params.sn_lgA[0],self.params.sn_lgA[1])
       gamma = parameter.Uniform(self.params.sn_gamma[0],self.params.sn_gamma[1])
-    if option=="powerlaw" or option=="gpriorpl":
+    if option=="powerlaw" or option=="gpriorpl" or option=="tgpriorpl":
       pl = utils.powerlaw(log10_A=log10_A, gamma=gamma, \
                           components=self.params.red_general_nfouriercomp)
     elif option=="turnover":

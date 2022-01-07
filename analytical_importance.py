@@ -45,8 +45,18 @@ opts.exclude = params.exclude
 #params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
 hr = im.ImportanceResult(opts)#, suffix=params.par_suffix)
 hr.main_pipeline()
-for chain in hr.chains:
+for ii, chain in enumerate(hr.chains):
   print(chain.keys()[0].split('_')[0],': ',len(chain),'samples available')
+  # Remove pulsar names from recycled sample names
+  # that are related to the main target likelihood parameter
+  # (later on we need a unique name for all pulsars)
+  if params.par_suffix=='red_noise':
+    rename_dict = {cn: cn[len(cn.split('_')[0])+1:] \
+                   for cn in chain.columns if params.par_suffix in cn}
+    print('Renaming posterior parameter names: ', \
+          ', '.join([key+' > '+val for key, val in rename_dict.items()]))
+    hr.chains[ii] = chain.rename(columns=rename_dict)
+
 # Making opts from hierarchical_models compatible with enterprise_warp
 # To make compatible with the next part but incompatible with the previous one
 opts_ew = copy.copy(opts)
@@ -78,6 +88,14 @@ if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
     opts_ew.num = ii
     params_t = enterprise_warp.Params(opts_ew.target, opts=opts_ew, custom_models_obj=custom)
     pta = enterprise_warp.init_pta(params_t)
+
+    # Remove pulsar names from target parameter name
+    # (later on we need a unique name for all pulsars)
+    for pp in pta[0].params:
+      if params.par_suffix in pp.name and params.par_suffix=='red_noise':
+        print('Renaming target likelihood parameter: ',pp.name,' > ',pp.name[len(pp.name.split('_')[0])+1:])
+        pp.name = pp.name[len(pp.name.split('_')[0])+1:]
+
     priors = bilby_warp.get_bilby_prior_dict(pta[0])
     for pkey, prior in priors.items():
       if type(prior) == bilby.core.prior.analytical.Normal:
@@ -104,6 +122,8 @@ if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
 
 ref_log10_A = -13.3 # simulation
 #ref_log10_A = -14.66
+
+ref_sigma_log10_A = 2.
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -266,7 +286,8 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     cb = plt.colorbar()
     cb.set_label(label='Posterior probability',size=font['size'],family=font['family'])
     cb.ax.tick_params(labelsize=font['size'])
-    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    plt.axvline(ref_log10_A,linestyle='--',color='red')
+    plt.axhline(ref_sigma_log10_A,linestyle='--',color='red')
     axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
@@ -282,7 +303,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(xx, mu_marg_over_sig)
-    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    plt.axvline(ref_log10_A,linestyle='--',color='red')
     axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
@@ -293,7 +314,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(yy[1:], sig_marg_over_mu[1:])
-    ##plt.axvline(2,linestyle='--',color='red')
+    plt.axvline(ref_sigma_log10_A,linestyle='--',color='red')
     axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
@@ -308,7 +329,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(xx[evobj.mask[0]], mu_marg_over_sig_z)
-    ##plt.axvline(ref_log10_A,linestyle='--',color='red')
+    plt.axvline(ref_log10_A,linestyle='--',color='red')
     axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
@@ -319,13 +340,24 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z)
-    ##plt.axvline(2,linestyle='--',color='red')
+    plt.axvline(ref_sigma_log10_A,linestyle='--',color='red')
     axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
     axes.tick_params(axis='x', labelsize = font['size'])
     plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
     plt.close()
+
+    # Effective number of samples
+    #for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat, Y_flat)), total=len(X_flat)):
+    #  is_likelihood.parameters = {
+    #    'mu_lg_A': XY_ii[0],
+    #    'sig_lg_A': XY_ii[1],
+    #    'low_lg_A': -20.,
+    #    'high_lg_A': -10.,
+    #  }
+    #  #log_likelihood_flat[ii] = is_likelihood.log_likelihood()
+    #  import ipdb; ipdb.set_trace()
 
   else:
     if opts.save_iterations >= 0:
