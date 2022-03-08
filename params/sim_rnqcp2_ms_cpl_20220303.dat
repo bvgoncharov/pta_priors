@@ -1,0 +1,18 @@
+paramfile_label: sim_rnqcp2_mscp
+datadir: /fred/oz031/pta_gwb_priors_out/sim_data/rnqcp_220302_010930/
+out: /fred/oz031/pta_gwb_priors_out/sim/
+overwrite: True
+array_analysis: True
+sampler: ptmcmcsampler
+SCAMweight: 30
+AMweight: 15
+DEweight: 50
+nsamp: 1000000
+efac: -1
+equad: -1
+ecorr: -1
+noisefiles: /fred/oz031/pta_gwb_priors_out/sim/20220303_efac_cp_sim_qrncp2_rpl_wnpe/noisefiles/
+{0}
+noise_model_file: /fred/oz031/pta_gwb_priors_out/sim_data/efac_universal.json
+{1}
+noise_model_file: /fred/oz031/pta_gwb_priors_out/sim_data/efac_cp_universal.json

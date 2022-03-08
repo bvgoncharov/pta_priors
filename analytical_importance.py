@@ -12,9 +12,12 @@ import time
 import tqdm
 #import pickle
 import numpy as np
+from scipy import interpolate
 from scipy.interpolate import griddata
 from scipy.integrate import simps
 from mpmath import mp
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 plt.rcParams.update({
   "text.usetex": True,
@@ -24,6 +27,11 @@ plt.rcParams.update({
 font = {'family' : 'serif',
         'size'   : 17}
 
+def cred_lvl_from_analytical_dist(xx,yy,lvl=[0.159,0.841]):
+  yy = yy/simps(yy,x=xx)
+  yy_cdf = np.array([simps(yy[0:ii],x=xx[0:ii]) for ii in range(1,len(xx))])
+  return [(np.abs(yy_cdf - val)).argmin() for val in lvl]
+
 import bilby
 
 from enterprise_warp import enterprise_warp, bilby_warp, results
@@ -32,6 +40,49 @@ import ppta_dr2_models
 
 import hierarchical_models as hm
 import importance_sampling as im
+
+def hex_to_rgb(value):
+    '''
+    Converts hex to rgb colours
+    value: string of 6 characters representing a hex colour.
+    Returns: list length 3 of RGB values'''
+    value = value.strip("#") # removes hash symbol if present
+    lv = len(value)
+    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+
+def rgb_to_dec(value):
+    '''
+    Converts rgb to decimal colours (i.e. divides each value by 256)
+    value: list (length 3) of RGB values
+    Returns: list (length 3) of decimal values'''
+    return [v/256 for v in value]
+
+def get_continuous_cmap(hex_list, float_list=None):
+    ''' creates and returns a color map that can be used in heat map figures.
+        If float_list is not provided, colour map graduates linearly between each color in hex_list.
+        If float_list is provided, each color in hex_list is mapped to the respective location in float_list. 
+        
+        Parameters
+        ----------
+        hex_list: list of hex code strings
+        float_list: list of floats between 0 and 1, same length as hex_list. Must start with 0 and end with 1.
+        
+        Returns
+        ----------
+        colour map'''
+    rgb_list = [rgb_to_dec(hex_to_rgb(i)) for i in hex_list]
+    if float_list:
+        pass
+    else:
+        float_list = list(np.linspace(0,1,len(rgb_list)))
+        
+    cdict = dict()
+    for num, col in enumerate(['red', 'green', 'blue']):
+        col_list = [[float_list[i], rgb_list[i][num], rgb_list[i][num]] for i in range(len(float_list))]
+        cdict[col] = col_list
+    cmp = mcolors.LinearSegmentedColormap('my_cmp', segmentdata=cdict, N=256)
+    return cmp
 
 n_psr = 26 # total number of pulsars (to-do: get this from parameters)
 opts = hm.parse_commandline()
@@ -120,10 +171,16 @@ sp = hm.__dict__[params.model](suffix=params.par_suffix)
 if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
   is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix) #sp, hr.log_zs, max_samples=2)
 
-ref_log10_A = -13.3 # simulation
+#ref_log10_A = -13.3 # simulation
+ref_log10_A = -13.8 # simulation for comments
 #ref_log10_A = -14.66
 
-ref_sigma_log10_A = 2.
+ref_sigma_log10_A = 0.5 # simulation
+#ref_sigma_log10_A = 0.
+
+#lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation original
+lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation for comments
+#lims_2d = [[-16,-14],[0.02004008,1.25]]
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -276,22 +333,37 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.close()
 
     # 2D plot posterior probability - zoomed in at evidence integration boundaries
+    # zooming in:
     exp_zv1_posterior_z = exp_zv1_posterior[:,evobj.mask[0]]
     exp_zv1_posterior_z = exp_zv1_posterior_z[evobj.mask[1],:]
+    # determining credible levels:
+    # Credit: https://stackoverflow.com/questions/37890550/python-plotting-percentile-contour-lines-of-a-probability-distribution
+    exp_zv1_posterior_z_norm = exp_zv1_posterior_z / exp_zv1_posterior_z.sum()
+    nn=1000
+    tt = np.linspace(0, exp_zv1_posterior_z_norm.max(), nn)
+    integral = ((exp_zv1_posterior_z_norm >= tt[:, None, None]) * exp_zv1_posterior_z_norm).sum(axis=(1,2))
+    ff = interpolate.interp1d(integral, tt)
+    t_contours = ff(np.array([0.997,0.954,0.682]))
+    # plotting:
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    img = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten())#,vmin=1323000, vmax=1327000)
-    plt.xlim(xy_limits[0])
-    plt.ylim(xy_limits[1])
+    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
     cb = plt.colorbar()
+    #plt.set_cmap('cividis')
+    img2 = plt.contour(exp_zv1_posterior_z_norm, t_contours, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5)
+    #plt.xlim(xy_limits[0])
+    #plt.ylim(xy_limits[1])
+    plt.xlim(lims_2d[0])
+    plt.ylim(lims_2d[1])
     cb.set_label(label='Posterior probability',size=font['size'],family=font['family'])
     cb.ax.tick_params(labelsize=font['size'])
-    plt.axvline(ref_log10_A,linestyle='--',color='red')
-    plt.axhline(ref_sigma_log10_A,linestyle='--',color='red')
+    plt.axvline(ref_log10_A,linestyle='--',color='black',linewidth=0.5)
+    plt.axhline(ref_sigma_log10_A,linestyle='--',color='black',linewidth=0.5)
     axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
     axes.tick_params(axis='x', labelsize = font['size'])
+    plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior_z.png')
     plt.close()
@@ -322,14 +394,25 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.savefig(outdir + 'logL-noise-posterior-sig.png')
     plt.close()
 
+    print('Savage-Dickey Bayes factor for zero sigma, unzoomed: ', sig_marg_over_mu[1]/(yy[-1]-yy[1]))
+
     # Marginalized zoomed posteriors
     mu_marg_over_sig_z = simps(exp_zv1_posterior_z,axis=0,x=yy[evobj.mask[1]])
     sig_marg_over_mu_z = simps(exp_zv1_posterior_z,axis=1,x=xx[evobj.mask[0]])
 
+    # Savage-Dickey odds ratio
+    bf_zero_over_nonzero = sig_marg_over_mu_z[0]/(yy[evobj.mask[1]][-1]-yy[evobj.mask[1]][0])
+    print('Savage-Dickey Bayes factor for zero sigma, zoomed: ', bf_zero_over_nonzero)
+
+    lvl = cred_lvl_from_analytical_dist(xx[evobj.mask[0]], mu_marg_over_sig_z)
+    print('Maximum-aposteriori value of sigma_log10_A: ', xx[evobj.mask[0]][np.argmax(mu_marg_over_sig_z)])
+    print('One-sigma credible levels: ', xx[evobj.mask[0]][lvl[0]], xx[evobj.mask[0]][lvl[1]])
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(xx[evobj.mask[0]], mu_marg_over_sig_z)
     plt.axvline(ref_log10_A,linestyle='--',color='red')
+    for lv in lvl:
+      plt.axvline(xx[evobj.mask[0]][lv],linewidth=0.5,color='black')
     axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
@@ -339,12 +422,29 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
 
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z)
-    plt.axvline(ref_sigma_log10_A,linestyle='--',color='red')
+    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color='#90D5EC')
+    plt.axvline(ref_sigma_log10_A,linestyle='--',color='black',linewidth=0.5)
+    if np.log(bf_zero_over_nonzero) < -3:
+      lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z)
+      print('Maximum-aposteriori value of sigma_log10_A: ', yy[evobj.mask[1]][np.argmax(sig_marg_over_mu_z)])
+      print('One-sigma credible levels: ', yy[evobj.mask[1]][lvl[0]], yy[evobj.mask[1]][lvl[1]])
+      mask_fill = (yy[evobj.mask[1]] >= yy[evobj.mask[1]][lvl[0]]) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[1]])
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      #for lv in lvl:
+      #  plt.axvline(yy[evobj.mask[1]][lv],linestyle='--',linewidth=0.5,color='black')
+    else:
+      lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z, lvl=[0.95])
+      print('Upper limit on sigma_log10_A at 95% credibility: ', yy[evobj.mask[1]][lvl[0]])
+      mask_fill = (yy[evobj.mask[1]] >= 0) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[0]])
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.axvline(yy[evobj.mask[1]][lvl[0]],linestyle='--',linewidth=0.5,color='black')
     axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
     axes.tick_params(axis='y', labelsize = font['size'])
     axes.tick_params(axis='x', labelsize = font['size'])
+    plt.xlim(lims_2d[1])
+    plt.ylim([0,np.max(sig_marg_over_mu_z)+0.2])
+    plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
     plt.close()
 

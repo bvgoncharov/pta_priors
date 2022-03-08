@@ -88,7 +88,7 @@ class ImportanceLikelihoodSignal(Likelihood):
     return np.sum(weight,axis=1)**2/np.sum(weight**2,axis=1)
 
   def log_likelihood_ratio_wrapper(self):
-    self.log_likelihood()
+    #self.log_likelihood() # Why it was here? It creates an infinite recursion!
     self.evaluate_target_likelihood()
     return self.log_likelihood_ratio()
 
