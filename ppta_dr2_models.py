@@ -23,6 +23,8 @@ class PPTADR2Models(StandardModels):
   def __init__(self,psr=None,params=None):
     super(PPTADR2Models, self).__init__(psr=psr,params=params)
     self.priors.update({
+      "sn_lgA_range": [-20., -6.],
+      "sn_gamma_range": [0., 10.],
       "fd_sys_slope_range": 1e-7,
       "event_j0437_t0": [57050., 57150.],
       "event_j0437_tau_10p": [5., 100.],
@@ -52,12 +54,13 @@ class PPTADR2Models(StandardModels):
       log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
       gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
     elif option=="tgpriorpl":
-      log10_A = parameter.Normal(self.params.sn_lgA[0],self.params.sn_lgA[1])
-      gamma = parameter.Normal(self.params.sn_gamma[0],self.params.sn_gamma[1])
-      log10_A._typename = log10_A._typename.replace('Normal','TruncatedNormal')
-      gamma._typename = gamma._typename.replace('Normal','TruncatedNormal')
-      log10_A._typename = log10_A._typename.replace(')',',-20.,-10.,)')
-      gamma._typename = gamma._typename.replace(')',',0.,10.,)')
+      log10_A = parameter.TruncatedNormal(self.params.sn_lgA[0],self.params.sn_lgA[1],self.params.sn_lgA_range[0],self.params.sn_lgA_range[1])
+      gamma = parameter.TruncatedNormal(self.params.sn_gamma[0],self.params.sn_gamma[1],self.params.sn_gamma_range[0],self.params.sn_gamma_range[1])
+
+      #log10_A._typename = log10_A._typename.replace('Normal','TruncatedNormal')
+      #gamma._typename = gamma._typename.replace('Normal','TruncatedNormal')
+      #log10_A._typename = log10_A._typename.replace(')',',-20.,-10.,)')
+      #gamma._typename = gamma._typename.replace(')',',0.,10.,)')
 
     elif option=="kdepl":
       with open(self.params.kdesn_file, 'rb') as kdef:

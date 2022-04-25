@@ -2,10 +2,10 @@
 #SBATCH --job-name=sim_rnqcp2_rndpl_ais_noise_20220307
 #SBATCH --output=/fred/oz031/logs_pta_gwb_priors/sim_rnqcp2_ais_noise_rndpl_cpprop_20220307_2_1_%A_%a.out
 #SBATCH --ntasks=1
-#SBATCH --time=05:00
+#SBATCH --time=0-1
 #SBATCH --mem-per-cpu=3G
 #SBATCH --tmp=3G
-#SBATCH --array=0-499
+#SBATCH --array=5-249
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]

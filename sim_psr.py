@@ -5,6 +5,7 @@ from scipy.stats import truncnorm
 import libstempo as T
 import libstempo.plot as LP, libstempo.toasim as LT
 from matplotlib import pyplot as plt
+import json
 
 from astropy.stats import LombScargle
 from enterprise_warp.libstempo_warp import red_psd
@@ -54,11 +55,32 @@ n_psrs = 26
 
 add_simple_red = True
 
+#srp = {
+#  'mu_gamma': 5.,
+#  'sig_gamma': 2.,
+#  'gamma_low': 0.,
+#  'gamma_high': 10.,
+#  'mu_log10_A': -14.3,
+#  'sig_log10_A': 1.3,
+#  'log10_A_low': -20.,
+#  'log10_A_high': -10.
+#}
+srp = {
+  'mu_gamma': 13/3,
+  'sig_gamma': 0.00001,
+  'gamma_low': 13/3-0.00001,
+  'gamma_high': 13/3+0.00001,
+  'mu_log10_A': -13.3,
+  'sig_log10_A': 1.3,
+  'log10_A_low': -15.6,
+  'log10_A_high': -11.
+}
+
 # qCP, from Gaussian truncated https://stackoverflow.com/a/37338391
 # a = (lower - mu) / sigma, b = (upper - mu) / sigma
-gamma = truncnorm.rvs(a=(0.-5.)/2., b=(10.-5.)/2., loc=5., scale=2., size=n_psrs)
-log10_AA = truncnorm.rvs((-20-(-14.3))/1.3, (-10-(-14.3))/1.3, loc=-14.3, scale=1.3, size=n_psrs)
-#name = 'qcp'
+gamma = truncnorm.rvs(a=(srp['gamma_low']-srp['mu_gamma'])/srp['sig_gamma'], b=(srp['gamma_high']-srp['mu_gamma'])/srp['sig_gamma'], loc=srp['mu_gamma'], scale=srp['sig_gamma'], size=n_psrs)
+log10_AA = truncnorm.rvs(a=(srp['log10_A_low']-srp['mu_log10_A'])/srp['sig_log10_A'], b=(srp['log10_A_high']-srp['mu_log10_A'])/srp['sig_log10_A'], loc=srp['mu_log10_A'], scale=srp['sig_log10_A'], size=n_psrs)
+name = 'qcp'
 
 # qCP2, gamma fixed
 # a = (lower - mu) / sigma, b = (upper - mu) / sigma
@@ -73,20 +95,31 @@ log10_AA = truncnorm.rvs((-20-(-14.3))/1.3, (-10-(-14.3))/1.3, loc=-14.3, scale=
 
 # ===== Second red noise term in the pulsar ===== #
 
-two_rn_terms = True
+two_rn_terms = False
+
+#rp2 = {
+#  'gamma': 13/3,
+#  'mu_log10_A': -13.8,
+#  'sig_log10_A': 0.4,
+#  'log10_A_low': -20.,
+#  'log10_A_high': -10.
+#}
 
 # qCP2, gamma fixed
 # a = (lower - mu) / sigma, b = (upper - mu) / sigma
-gamma_2 = np.repeat(13/3, n_psrs)
-log10_AA_2 = truncnorm.rvs((-20-(-13.8))/0.4, (-10-(-13.8))/0.4, loc=-13.8, scale=0.4, size=n_psrs)
-name = 'rnqcp'
+#gamma_2 = np.repeat(rp2['gamma'], n_psrs)
+#log10_AA_2 = truncnorm.rvs(a=(rp2['log10_A_low']-rp2['mu_log10_A'])/rp2['sig_log10_A'], b=(rp2['log10_A_high']-rp2['mu_log10_A'])/rp2['sig_log10_A'], loc=rp2['mu_log10_A'], scale=rp2['sig_log10_A'], size=n_psrs)
+#name = 'rnqcp'
 
 # ====== GWB ===== #
 
 add_gwb = False
 f_low = 4.5388525780680866447e-09 # Check before running, 1/day/(psr.stoas[-1]-psr.stoas[0])
 
-#log10_A_gw = -13.3
+# gwt = {
+#   'log10_A_gw': -13.3
+# }
+#log10_A_gw = gwt['log10_A_gw']
 #gwamp_tempo2 = 10**(log10_A_gw) # enterprise_to_tempo2_A_gw(10**log10_A_gw)
 #print('GW amplitude in tempo2 convention: ', gwamp_tempo2)
 #
@@ -97,6 +130,19 @@ plot_psd = True
 psr_psds = []
 psr_fs = []
 psr_f = np.arange(f_low, 30*f_low, f_low)
+
+# ======================================================== #
+# Summary
+
+summary = {
+  'add_simple_red': {},
+  'two_rn_terms': {},
+  'add_gwb': {}
+}
+
+summary['add_simple_red'] = srp if add_simple_red else ''
+summary['two_rn_terms'] = rp2 if two_rn_terms else ''
+summary['add_gwb'] = gwt if add_gwb else ''
 
 
 
@@ -117,6 +163,9 @@ if two_rn_terms:
   fmt += ['%.18f','%.18f']
 
 np.savetxt(outdir+'inj_params.txt', inj_params, fmt = fmt)
+
+with open(outdir+'config.json', 'w') as outfile:
+    json.dump(summary, outfile, indent=2)
 
 #plt.hist(log10_AA,density=True,label='samples')
 #log10_A_xvals = np.linspace(-10,-20,100)
@@ -207,6 +256,25 @@ if plot_psd:
   plt.xlabel('Frequency [Hz]')
   plt.ylabel('PSD [s^3]')
   plt.savefig(outdir+'psd.png')
+  plt.close()
+
+if plot_psd:
+  plt.hist(log10_AA, alpha=0.4, color='red', label='SN')
+  if two_rn_terms:
+    plt.hist(log10_AA_2, alpha=0.4, color='blue', label='(q)CP')
+  plt.legend()
+  plt.xlabel('log10A')
+  plt.ylabel('N')
+  plt.savefig(outdir+'log10_A_dist.png')
+  plt.close()
+
+  plt.hist(gamma, alpha=0.4, color='red', label='SN')
+  if two_rn_terms:
+    plt.hist(gamma_2, alpha=0.4, color='blue', label='(q)CP')
+  plt.legend()
+  plt.xlabel('gamma')
+  plt.ylabel('N')
+  plt.savefig(outdir+'gamma_dist.png')
   plt.close()
 
 import ipdb; ipdb.set_trace()

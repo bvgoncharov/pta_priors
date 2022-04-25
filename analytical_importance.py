@@ -172,15 +172,15 @@ if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
   is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix) #sp, hr.log_zs, max_samples=2)
 
 #ref_log10_A = -13.3 # simulation
-ref_log10_A = -13.8 # simulation for comments
-#ref_log10_A = -14.66
+#ref_log10_A = -13.8 # simulation for comments
+ref_log10_A = -14.66
 
-ref_sigma_log10_A = 0.5 # simulation
-#ref_sigma_log10_A = 0.
+#ref_sigma_log10_A = 0.5 # simulation
+ref_sigma_log10_A = 0.
 
 #lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation original
-lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation for comments
-#lims_2d = [[-16,-14],[0.02004008,1.25]]
+#lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation for comments
+lims_2d = [[-16,-14],[0.02004008,1.25]]
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -366,6 +366,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior_z.png')
+    plt.savefig(outdir + 'logL-noise-posterior_z.pdf')
     plt.close()
 
     # Marginalized posteriors
@@ -446,6 +447,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.ylim([0,np.max(sig_marg_over_mu_z)+0.2])
     plt.tight_layout()
     plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
+    plt.savefig(outdir + 'logL-noise-posterior-sig-z.pdf')
     plt.close()
 
     # Effective number of samples
