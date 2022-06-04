@@ -341,6 +341,27 @@ class PPTADR2Models(StandardModels):
           gamma_val = float(option.split('_')[split_idx_gamma])
           gwb_gamma = parameter.Constant(gamma_val)(gam_name)
         gwb_pl = utils.powerlaw(log10_A=gwb_log10_A, gamma=gwb_gamma)
+      elif "_amplitude" in option:
+        gam_name = '{}_gamma'.format(name)
+        if (len(optsp) > 1 and 'hd' in option) or ('namehd' in option):
+          gam_name += '_hd'
+        elif (len(optsp) > 1 and ('varorf' in option or \
+                                  'interporf' in option)) \
+                                  or ('nameorf' in option):
+          gam_name += '_orf'
+        if self.params.gwb_gamma_prior == "uniform":
+          gwb_gamma = parameter.Uniform(self.params.gwb_gamma[0],
+                                        self.params.gwb_gamma[1])(gam_name)
+        elif self.params.gwb_gamma_prior == "normal":
+          gwb_gamma = parameter.Normal(sigma=self.params.gwb_gamma[1],
+                                       mu=self.params.gwb_gamma[0])(gam_name)
+
+        amp_name = '{}_log10_A'.format(name)
+        if "fixed_amplitude" in option:
+          gwb_log10_A = parameter.Constant(self.params.gwb_lgA[0])(amp_name)
+
+        gwb_pl = utils.powerlaw(log10_A=gwb_log10_A, gamma=gwb_gamma)
+
       elif "freesp" in option:
         amp_name = '{}_log10_rho'.format(name)
         log10_rho = parameter.Uniform(self.params.gwb_lgrho[0],

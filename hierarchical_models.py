@@ -112,6 +112,14 @@ class Norm_trunc_lg_A(object):
     return norm_trunc_lg_A(dataset, mu_lg_A, sig_lg_A, low_lg_A, \
                            high_lg_A, suffix = self.suffix)
 
+class Norm_trunc_gamma(object):
+  def __init__(self, suffix='red_noise'):
+    self.suffix = suffix
+
+  def __call__(self, dataset, mu_gam, sig_gam, low_gam, high_gam):
+    return norm_trunc_gamma(dataset, mu_gam, sig_gam, low_gam, \
+                           high_gam, suffix = self.suffix)
+
 class Unif_prod_lg_A_gamma(object):
   def __init__(self, suffix='red_noise'):
     self.suffix = suffix
@@ -165,6 +173,17 @@ def norm_trunc_lg_A(dataset, mu_lg_A, sig_lg_A, low_lg_A, \
   return norm(dataset, suffix+'_log10_A', mu_lg_A, sig_lg_A)/\
          norm_area(mu_lg_A, sig_lg_A, low_lg_A, high_lg_A)*\
          mask_low_lg_A * mask_high_lg_A
+
+def norm_trunc_gamma(dataset, mu_gam, sig_gam, low_gam, \
+                    high_gam, suffix='red_noise'):
+
+  # Setting zero probability to "impossible" values
+  mask_low_gam = dataset[suffix+'_gamma'] > low_gam
+  mask_high_gam = dataset[suffix+'_gamma'] < high_gam
+
+  return norm(dataset, suffix+'_gamma', mu_gam, sig_gam)/\
+         norm_area(mu_gam, sig_gam, low_gam, high_gam)*\
+         mask_low_gam * mask_high_gam
 
 def norm_gamma(dataset, mu_gam, sig_gam, suffix='red_noise'):
   return norm(dataset, suffix+'_gamma', mu_gam, sig_gam)
@@ -353,6 +372,9 @@ def hp_Norm_lg_A(hip):
 def hp_Norm_trunc_lg_A(hip):
   return {**hp_Norm_lg_A(hip), **hp_Unif_lg_A(hip)}
 
+def hp_Norm_trunc_gamma(hip):
+  return {**hp_Norm_gamma(hip), **hp_Unif_gamma(hip)}
+
 def hp_Norm_gamma(hip):
   return dict(mu_gam = hyper_prior_type(hip.mu_gam, \
               'mu_gam', '$\mu_{\gamma}$', hp_type=hip.mu_gam_type),
@@ -419,7 +441,9 @@ class HierarchicalInferenceParams(StandardModels):
       "max_samples_from_measurement": 500,
       "model": "norm_prod_lg_A_gamma",
       "par_suffix": "red_noise",
+      "parname": "log10_A",
       "exclude": [""],
+      "qc_range": [-20., -10.],
       "mu_lg_A": [-20., -10.],
       "mu_lg_A_type": "uniform",
       "sig_lg_A": [0., 10.],

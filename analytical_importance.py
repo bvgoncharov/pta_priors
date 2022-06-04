@@ -169,7 +169,10 @@ sp = hm.__dict__[params.model](suffix=params.par_suffix)
 
 # Constructing Signal likelihood
 if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
-  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix) #sp, hr.log_zs, max_samples=2)
+  is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix, parname=params.parname, qc_range=params.qc_range) #sp, hr.log_zs, max_samples=2)
+
+save_publ_plots = True
+overplot_publ_plots = '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_xg3_20220112/' # dir or None
 
 #ref_log10_A = -13.3 # simulation
 #ref_log10_A = -13.8 # simulation for comments
@@ -181,6 +184,12 @@ ref_sigma_log10_A = 0.
 #lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation original
 #lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation for comments
 lims_2d = [[-16,-14],[0.02004008,1.25]]
+
+ref_gamma = 13/3 # simulation and data
+
+ref_sigma_gamma = 0.
+
+lims_2d_gam = [[2,6],[0.02004008, 2.0]]
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
@@ -351,6 +360,10 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     cb = plt.colorbar()
     #plt.set_cmap('cividis')
     img2 = plt.contour(exp_zv1_posterior_z_norm, t_contours, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5)
+    if overplot_publ_plots is not None:
+      other_1 = np.loadtxt(overplot_publ_plots + 'logL-noise-posterior_z_1.txt')
+      other_2 = np.loadtxt(overplot_publ_plots + 'logL-noise-posterior_z_2.txt')
+      img3 = plt.contour(other_1, other_2, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5, linestyles='-.')
     #plt.xlim(xy_limits[0])
     #plt.ylim(xy_limits[1])
     plt.xlim(lims_2d[0])
@@ -368,6 +381,12 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.savefig(outdir + 'logL-noise-posterior_z.png')
     plt.savefig(outdir + 'logL-noise-posterior_z.pdf')
     plt.close()
+
+    if save_publ_plots:
+      np.savetxt(outdir + 'logL-noise-posterior_z_1.txt', \
+                 exp_zv1_posterior_z_norm)
+      np.savetxt(outdir + 'logL-noise-posterior_z_2.txt', \
+                 t_contours)
 
     # Marginalized posteriors
     mu_marg_over_sig = simps(exp_zv1_posterior,axis=0,x=yy)
@@ -424,6 +443,11 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     fig = plt.figure()
     axes = fig.add_subplot(111)
     plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color='#90D5EC')
+    if overplot_publ_plots is not None:
+      # Overplotting other result (e.g. with fewer pulsars)
+      other = np.loadtxt(overplot_publ_plots + 'logL-noise-posterior-sig-z.txt')
+      plt.plot(other[:,0], other[:,1], color='black', linewidth=0.5, linestyle='-.')
+      plt.tight_layout()
     plt.axvline(ref_sigma_log10_A,linestyle='--',color='black',linewidth=0.5)
     if np.log(bf_zero_over_nonzero) < -3:
       lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z)
@@ -449,6 +473,10 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
     plt.savefig(outdir + 'logL-noise-posterior-sig-z.pdf')
     plt.close()
+
+    if save_publ_plots:
+      np.savetxt(outdir + 'logL-noise-posterior-sig-z.txt', \
+                 np.array([yy[evobj.mask[1]],sig_marg_over_mu_z]).T)
 
     # Effective number of samples
     #for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat, Y_flat)), total=len(X_flat)):
@@ -492,6 +520,210 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
         log_likelihood_flat[ii] = is_likelihood.log_likelihood()
       np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat) 
     exit()
+
+if 'mu_gam' in hp_priors.keys() and 'sig_gam' in hp_priors.keys():
+  xx = np.linspace(hp_priors['mu_gam'].minimum,hp_priors['mu_gam'].maximum,params.grid_size)
+  yy = np.linspace(hp_priors['sig_gam'].minimum,hp_priors['sig_gam'].maximum,params.grid_size)
+  X, Y = np.meshgrid(xx,yy)
+  X_shape, Y_shape = X.shape, Y.shape
+  X_flat, Y_flat = X.flatten(), Y.flatten()
+  print('Total samples: ', len(X_flat))
+  likelihood_grid_files = np.array([outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(int(len(X_flat)/opts.n_grid_iter))])
+  likelihood_grid_files_exist = np.array([os.path.exists(lgf) for lgf in likelihood_grid_files])
+  if (opts.save_iterations < 0) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy') and np.all(likelihood_grid_files_exist):
+    log_likelihood_flat = np.empty(len(X_flat))
+    for ii, lgf in enumerate(likelihood_grid_files):
+      log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.load(lgf)
+    np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+  elif np.any(likelihood_grid_files_exist) and not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
+    print('Missing likelihood-on-a-grid files:')
+    for lgf in np.array(likelihood_grid_files)[~likelihood_grid_files_exist]:
+      print(lgf)
+    if opts.incomplete:
+      log_likelihood_flat = np.empty(len(X_flat))
+      for ii, lgf in enumerate(likelihood_grid_files):
+        if os.path.exists(lgf):
+          log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.load(lgf)
+        else:
+          log_likelihood_flat[ii*opts.n_grid_iter:(ii+1)*opts.n_grid_iter] = np.repeat(-100,opts.n_grid_iter)
+      np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+  if os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
+    log_likelihood_flat = np.load(outdir + 'likelihood_on_a_grid.npy')
+    zv1 = log_likelihood_flat.reshape(X_shape)
+    # Evidence calculation
+    #xy_limits = ((-17.5,-13.5),(0.02004008, 5.)) # real data < 2000 samples
+    #xy_limits = ((-15.8,-14.2),(0.02004008, 1.5))
+    #xy_limits = ((-18.0,-12.0),(0.02004008, 10.)) # simulation 100 samples
+    xy_limits = ((1.,9.),(0.02004008, 4.)) # simulation 1600 samples
+    evobj = im.AnalyticalEvidence2D(zv1,(X,Y),xy_limits)
+    log_z = evobj.logz()
+    zz = evobj.z()
+
+    zv1[np.isnan(zv1)] = np.min(log_likelihood_flat[~np.isnan(log_likelihood_flat)]) # To replace nans by minimum values
+
+    # To plot unlogged likelihood
+    zv1s = zv1.shape
+    zv1_flat = zv1.flatten()
+    # Create a mask for values that are too large - numerical artifacts (look at previous plots).
+    # This is for normalization by the largest value. Values too small will be turned to -inf naturally.
+    #max_zv_for_norm = np.max([np.max(zv1[1:25,ii]) for ii in [125,245,250,255]])
+    #zv1_flat[zv1_flat > max_zv_for_norm] = max_zv_for_norm
+    mp.prec = 170
+    mp_zv1 = mp.matrix(zv1_flat)
+    exp_zv1_flat = mp.matrix([[mp.e**val for val in mp_zv1]])
+    exp_zv1_flat_posterior = exp_zv1_flat*(1/(evobj.xx[0,-1]-evobj.xx[0,0]))*(1/(evobj.yy[-1,0]-evobj.yy[0,0]))/zz # - max(exp_zv1_flat) + 1e6
+    exp_zv1_posterior = np.array([float(val) for val in exp_zv1_flat_posterior]).reshape(zv1s)
+
+    # 2D plot posterior probability - zoomed in at evidence integration boundaries
+    # zooming in:
+    exp_zv1_posterior_z = exp_zv1_posterior[:,evobj.mask[0]]
+    exp_zv1_posterior_z = exp_zv1_posterior_z[evobj.mask[1],:]
+    # determining credible levels:
+    # Credit: https://stackoverflow.com/questions/37890550/python-plotting-percentile-contour-lines-of-a-probability-distribution
+    exp_zv1_posterior_z_norm = exp_zv1_posterior_z / exp_zv1_posterior_z.sum()
+    nn=1000
+    tt = np.linspace(0, exp_zv1_posterior_z_norm.max(), nn)
+    integral = ((exp_zv1_posterior_z_norm >= tt[:, None, None]) * exp_zv1_posterior_z_norm).sum(axis=(1,2))
+    ff = interpolate.interp1d(integral, tt)
+    t_contours = ff(np.array([0.997,0.954,0.682]))
+    # plotting:
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
+    cb = plt.colorbar()
+    #plt.set_cmap('cividis')
+    img2 = plt.contour(exp_zv1_posterior_z_norm, t_contours, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5)
+    #plt.xlim(xy_limits[0])
+    #plt.ylim(xy_limits[1])
+    plt.xlim(lims_2d_gam[0])
+    plt.ylim(lims_2d_gam[1])
+    cb.set_label(label='Posterior probability',size=font['size'],family=font['family'])
+    cb.ax.tick_params(labelsize=font['size'])
+    plt.axvline(ref_gamma,linestyle='--',color='black',linewidth=0.5)
+    plt.axhline(ref_sigma_gamma,linestyle='--',color='black',linewidth=0.5)
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-posterior_z.png')
+    plt.savefig(outdir + 'logL-noise-posterior_z.pdf')
+    plt.close()
+
+    # Marginalized posteriors
+    mu_marg_over_sig = simps(exp_zv1_posterior,axis=0,x=yy)
+    sig_marg_over_mu = simps(exp_zv1_posterior,axis=1,x=xx)
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(xx, mu_marg_over_sig)
+    plt.axvline(ref_gamma,linestyle='--',color='red')
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.savefig(outdir + 'logL-noise-posterior-mu.png')
+    plt.close()
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(yy[1:], sig_marg_over_mu[1:])
+    plt.axvline(ref_sigma_gamma,linestyle='--',color='red')
+    axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.savefig(outdir + 'logL-noise-posterior-sig.png')
+    plt.close()
+
+    print('Savage-Dickey Bayes factor for zero sigma, unzoomed: ', sig_marg_over_mu[1]/(yy[-1]-yy[1]))
+
+    # Marginalized zoomed posteriors
+    mu_marg_over_sig_z = simps(exp_zv1_posterior_z,axis=0,x=yy[evobj.mask[1]])
+    sig_marg_over_mu_z = simps(exp_zv1_posterior_z,axis=1,x=xx[evobj.mask[0]])
+
+    # Savage-Dickey odds ratio
+    bf_zero_over_nonzero = sig_marg_over_mu_z[0]/(yy[evobj.mask[1]][-1]-yy[evobj.mask[1]][0])
+    print('Savage-Dickey Bayes factor for zero sigma, zoomed: ', bf_zero_over_nonzero)
+
+    lvl = cred_lvl_from_analytical_dist(xx[evobj.mask[0]], mu_marg_over_sig_z)
+    print('Maximum-aposteriori value of sigma_log10_A: ', xx[evobj.mask[0]][np.argmax(mu_marg_over_sig_z)])
+    print('One-sigma credible levels: ', xx[evobj.mask[0]][lvl[0]], xx[evobj.mask[0]][lvl[1]])
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(xx[evobj.mask[0]], mu_marg_over_sig_z)
+    plt.axvline(ref_gamma,linestyle='--',color='red')
+    for lv in lvl:
+      plt.axvline(xx[evobj.mask[0]][lv],linewidth=0.5,color='black')
+    axes.set_xlabel('$\mu_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.savefig(outdir + 'logL-noise-posterior-mu-z.png')
+    plt.close()
+
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color='#90D5EC')
+    plt.axvline(ref_sigma_gamma,linestyle='--',color='black',linewidth=0.5)
+    if np.log(bf_zero_over_nonzero) < -3:
+      lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z)
+      print('Maximum-aposteriori value of sigma_log10_A: ', yy[evobj.mask[1]][np.argmax(sig_marg_over_mu_z)])
+      print('One-sigma credible levels: ', yy[evobj.mask[1]][lvl[0]], yy[evobj.mask[1]][lvl[1]])
+      mask_fill = (yy[evobj.mask[1]] >= yy[evobj.mask[1]][lvl[0]]) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[1]])
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      #for lv in lvl:
+      #  plt.axvline(yy[evobj.mask[1]][lv],linestyle='--',linewidth=0.5,color='black')
+    else:
+      lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z, lvl=[0.95])
+      print('Upper limit on sigma_log10_A at 95% credibility: ', yy[evobj.mask[1]][lvl[0]])
+      mask_fill = (yy[evobj.mask[1]] >= 0) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[0]])
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.axvline(yy[evobj.mask[1]][lvl[0]],linestyle='--',linewidth=0.5,color='black')
+    axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
+    axes.set_ylabel('Marginalized posterior', fontdict=font)
+    axes.tick_params(axis='y', labelsize = font['size'])
+    axes.tick_params(axis='x', labelsize = font['size'])
+    plt.xlim(lims_2d_gam[1])
+    plt.ylim([0,np.max(sig_marg_over_mu_z)+0.2])
+    plt.tight_layout()
+    plt.savefig(outdir + 'logL-noise-posterior-sig-z.png')
+    plt.savefig(outdir + 'logL-noise-posterior-sig-z.pdf')
+    plt.close()
+
+  else:
+    if opts.save_iterations >= 0:
+      t0 = time.time()
+      X_flat_iter = X_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
+      Y_flat_iter = Y_flat[opts.save_iterations*opts.n_grid_iter:(opts.save_iterations+1)*opts.n_grid_iter]
+      log_likelihood_iter = np.empty(len(X_flat_iter))
+      for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat_iter, Y_flat_iter)), total=len(X_flat_iter)):
+        is_likelihood.parameters = {
+          'mu_gam': XY_ii[0], #X_flat[opts.save_iterations],
+          'sig_gam': XY_ii[1], #Y_flat[opts.save_iterations],
+          'low_gam': 0.,
+          'high_gam': 10.,
+        }
+        #log_likelihood_iter.append( is_likelihood.log_likelihood() )
+        log_likelihood_iter[ii] = is_likelihood.log_likelihood()
+      t1 = time.time()
+      print('Elapsed time: ',t1-t0)
+      np.save(outdir + 'likelihood_on_a_grid_' + str(opts.save_iterations) + '.npy', log_likelihood_iter)
+      print('Saved ', opts.save_iterations, ' in ', outdir)
+    else:
+      log_likelihood_flat = np.empty(len(X_flat))
+      for ii, XY_ii in tqdm.tqdm(enumerate(zip(X_flat, Y_flat)), total=len(X_flat)):
+        is_likelihood.parameters = {
+          'mu_gam': XY_ii[0],
+          'sig_gam': XY_ii[1],
+          'low_gam': 0.,
+          'high_gam': 10.,
+        }
+        log_likelihood_flat[ii] = is_likelihood.log_likelihood()
+      np.save(outdir + 'likelihood_on_a_grid.npy', log_likelihood_flat)
+    exit()
+
 elif 'gw_log10_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['gw_log10_A'].minimum, hp_priors['gw_log10_A'].maximum, params.grid_size)
   likelihood_grid_files = [outdir + 'likelihood_on_a_grid_' + str(ii) + '.npy' for ii in range(len(xx))]

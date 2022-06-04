@@ -22,7 +22,8 @@ class ImportanceLikelihoodSignal(Likelihood):
   """
   def __init__(self, posteriors, obj_likelihoods_targ, prior, 
                log_evidences, max_samples=1e100, post_draw_rs=777,
-               stl_file="", grid_size=300, save_iterations=-1, suffix='gw'):
+               stl_file="", grid_size=300, save_iterations=-1, suffix='gw',
+               parname='log10_A', qc_range=[-20.,-10.]):
 
     #if not isinstance(prior, Model):
     #  prior = Model([prior])
@@ -31,6 +32,8 @@ class ImportanceLikelihoodSignal(Likelihood):
 
     self.prior = prior
     self.suffix = suffix
+    self.parname = parname
+    self.qc_range = qc_range
     #self.posteriors = [posterior.sample(max_samples) for posterior in posteriors]
     self.posteriors = []
     for posterior in posteriors:
@@ -41,11 +44,11 @@ class ImportanceLikelihoodSignal(Likelihood):
         self.posteriors.append(posterior)
     self.obj_likelihoods_targ = obj_likelihoods_targ
 
-    # Make sure the required log10_A parameter is in the target likelihood
+    # Make sure the required log10_A/gamma parameter is in the target likelihood
     for olt in self.obj_likelihoods_targ:
-      if not suffix+'_log10_A' in olt.parameters.keys():
-        error_str = 'Parameter '+suffix+\
-                    '_log10_A is not in the target likelihood parameters: '+\
+      if not suffix+'_'+parname in olt.parameters.keys():
+        error_str = 'Parameter '+suffix+'_'+parname+\
+                    ' is not in the target likelihood parameters: '+\
                     ','.join(olt.parameters.keys())
         raise ValueError(error_str)
 
@@ -107,10 +110,11 @@ class ImportanceLikelihoodSignal(Likelihood):
 class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
   def __init__(self, posteriors, obj_likelihoods_targ, prior,
                log_evidences, max_samples=1e100, post_draw_rs=777,
-               stl_file="", grid_size=300, save_iterations=-1, suffix='gw'):
+               stl_file="", grid_size=300, save_iterations=-1, suffix='gw',
+               parname='log10_A', qc_range=[-20.,-10.]):
 
-    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, post_draw_rs=post_draw_rs, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations, suffix=suffix)
-    self.qc_samples = np.linspace(-20., -10., grid_size) #100+1) # A_qc (gamma_qc) sample grid
+    super(ImportanceLikelihoodNoise, self).__init__(posteriors, obj_likelihoods_targ, prior, log_evidences, max_samples=max_samples, post_draw_rs=post_draw_rs, stl_file=stl_file, grid_size=grid_size, save_iterations=save_iterations, suffix=suffix, parname=parname, qc_range=qc_range)
+    self.qc_samples = np.linspace(qc_range[0], qc_range[1], grid_size) #100+1) # A_qc (gamma_qc) sample grid
     self.prior_for_qc_samples = np.empty(len(self.qc_samples))
     self.log_likelihoods_target_unmarginalized = np.empty(self.data_shape + (len(self.qc_samples),), dtype=np.longdouble)
 
@@ -125,12 +129,12 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
     else:
       if np.any([os.path.exists(ff) for ff in stl_iter_files]):
         mf = np.array(stl_iter_files)[~np.array([os.path.exists(lgf) for lgf in stl_iter_files])]
-        print('Partial samples of gw_log10_A_qc are found. Missing files: \n', mf)
+        print('Partial samples of gw_log10_A_qc/gw_gamma_qc are found. Missing files: \n', mf)
       if save_iterations < 0:
         print('Pre-computing target likelihood, total samples: ', len(self.qc_samples))
         for qc_sample_kk, qc_sample in tqdm.tqdm(enumerate(self.qc_samples),total=len(self.qc_samples)):
           #print('Sample ', qc_sample_kk, '/', len(self.qc_samples))
-          self.update_parameter_samples({self.suffix+'_log10_A': qc_sample})
+          self.update_parameter_samples({self.suffix+'_'+self.parname: qc_sample})
           self.evaluate_target_likelihood()
           self.log_likelihoods_target_unmarginalized[:,:,qc_sample_kk] = self.log_likelihoods_target
         if stl_file is not None:
@@ -139,7 +143,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
           exit()
       elif stl_file is not None:
         t0 = time.time()
-        self.update_parameter_samples({self.suffix+'_log10_A': self.qc_samples[save_iterations]})
+        self.update_parameter_samples({self.suffix+'_'+self.parname: self.qc_samples[save_iterations]})
         self.evaluate_target_likelihood()
         t1 = time.time()
         print('Elapsed time: ',t1-t0)
@@ -159,7 +163,7 @@ class ImportanceLikelihoodNoise(ImportanceLikelihoodSignal):
       return 1e100
 
   def evaluate_prior_for_qc_samples(self):
-    self.prior_for_qc_samples = self.prior({self.suffix+'_log10_A': self.qc_samples}, **self.parameters)
+    self.prior_for_qc_samples = self.prior({self.suffix+'_'+self.parname: self.qc_samples}, **self.parameters)
 
 # ================================================== #
 
@@ -209,6 +213,9 @@ class ImportanceResult(results.BilbyWarpResult):
                               self.result.posterior.pop(key)
       elif self.suffix+'_log10_A' in key:
         self.result.posterior[self.suffix+'_log10_A'] = \
+                              self.result.posterior.pop(key)
+      elif self.suffix+'_gamma' in key:
+        self.result.posterior[self.suffix+'_gamma'] = \
                               self.result.posterior.pop(key)
 
 # =================================================  #
