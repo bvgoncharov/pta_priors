@@ -84,7 +84,6 @@ def get_continuous_cmap(hex_list, float_list=None):
     cmp = mcolors.LinearSegmentedColormap('my_cmp', segmentdata=cdict, N=256)
     return cmp
 
-n_psr = 26 # total number of pulsars (to-do: get this from parameters)
 opts = hm.parse_commandline()
 
 custom = ppta_dr2_models.PPTADR2Models
@@ -107,6 +106,9 @@ for ii, chain in enumerate(hr.chains):
     print('Renaming posterior parameter names: ', \
           ', '.join([key+' > '+val for key, val in rename_dict.items()]))
     hr.chains[ii] = chain.rename(columns=rename_dict)
+
+n_psr = 45 # 26 # total number of pulsars (to-do: get this from parameters)
+print('\n[Warning!] By-hand specification of a total number of pulsar is needed! Current n_psr = ', n_psr, '\n')
 
 # Making opts from hierarchical_models compatible with enterprise_warp
 # To make compatible with the next part but incompatible with the previous one
@@ -172,14 +174,18 @@ if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
   is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix, parname=params.parname, qc_range=params.qc_range) #sp, hr.log_zs, max_samples=2)
 
 save_publ_plots = True
-overplot_publ_plots = '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_xg3_20220112/' # dir or None
+overplot_publ_plots = '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_all_20220204/' # '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_xg3_20220112/' # dir or None
 
 #ref_log10_A = -13.3 # simulation
 #ref_log10_A = -13.8 # simulation for comments
-ref_log10_A = -14.66
+#ref_log10_A = -14.66
+ref_log10_A = -14.72 # NANOGrav
 
 #ref_sigma_log10_A = 0.5 # simulation
 ref_sigma_log10_A = 0.
+
+#color_sequence = ['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC'] # PPTA, grey-to-blue
+color_sequence = ['#ceb5a7', '#e9f7ca', '#f7d488', '#f9a03f'] # NANOGrav, sand-green-orange
 
 #lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation original
 #lims_2d = [[-14.5,-12.5],[0.02004008,1.7]] # simulation for comments
@@ -356,7 +362,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
     # plotting:
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
+    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(color_sequence)) #['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
     cb = plt.colorbar()
     #plt.set_cmap('cividis')
     img2 = plt.contour(exp_zv1_posterior_z_norm, t_contours, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5)
@@ -442,7 +448,7 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
 
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color='#90D5EC')
+    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color=color_sequence[-1])
     if overplot_publ_plots is not None:
       # Overplotting other result (e.g. with fewer pulsars)
       other = np.loadtxt(overplot_publ_plots + 'logL-noise-posterior-sig-z.txt')
@@ -454,14 +460,14 @@ if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
       print('Maximum-aposteriori value of sigma_log10_A: ', yy[evobj.mask[1]][np.argmax(sig_marg_over_mu_z)])
       print('One-sigma credible levels: ', yy[evobj.mask[1]][lvl[0]], yy[evobj.mask[1]][lvl[1]])
       mask_fill = (yy[evobj.mask[1]] >= yy[evobj.mask[1]][lvl[0]]) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[1]])
-      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color=color_sequence[-1])
       #for lv in lvl:
       #  plt.axvline(yy[evobj.mask[1]][lv],linestyle='--',linewidth=0.5,color='black')
     else:
       lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z, lvl=[0.95])
       print('Upper limit on sigma_log10_A at 95% credibility: ', yy[evobj.mask[1]][lvl[0]])
       mask_fill = (yy[evobj.mask[1]] >= 0) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[0]])
-      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color=color_sequence[-1])
       plt.axvline(yy[evobj.mask[1]][lvl[0]],linestyle='--',linewidth=0.5,color='black')
     axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
@@ -589,7 +595,7 @@ if 'mu_gam' in hp_priors.keys() and 'sig_gam' in hp_priors.keys():
     # plotting:
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
+    img1 = plt.imshow(exp_zv1_posterior_z,origin='lower',extent=np.array(xy_limits).flatten(),cmap=get_continuous_cmap(color_sequence)) #['#F1F1F1','#C5E3EC','#AADDEC','#90D5EC']))
     cb = plt.colorbar()
     #plt.set_cmap('cividis')
     img2 = plt.contour(exp_zv1_posterior_z_norm, t_contours, extent=np.array(xy_limits).flatten(), colors='black', linewidths=0.5)
@@ -665,21 +671,21 @@ if 'mu_gam' in hp_priors.keys() and 'sig_gam' in hp_priors.keys():
 
     fig = plt.figure()
     axes = fig.add_subplot(111)
-    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color='#90D5EC')
+    plt.plot(yy[evobj.mask[1]], sig_marg_over_mu_z, color=color_sequence[-1])
     plt.axvline(ref_sigma_gamma,linestyle='--',color='black',linewidth=0.5)
     if np.log(bf_zero_over_nonzero) < -3:
       lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z)
       print('Maximum-aposteriori value of sigma_log10_A: ', yy[evobj.mask[1]][np.argmax(sig_marg_over_mu_z)])
       print('One-sigma credible levels: ', yy[evobj.mask[1]][lvl[0]], yy[evobj.mask[1]][lvl[1]])
       mask_fill = (yy[evobj.mask[1]] >= yy[evobj.mask[1]][lvl[0]]) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[1]])
-      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color=color_sequence[-1])
       #for lv in lvl:
       #  plt.axvline(yy[evobj.mask[1]][lv],linestyle='--',linewidth=0.5,color='black')
     else:
       lvl = cred_lvl_from_analytical_dist(yy[evobj.mask[1]], sig_marg_over_mu_z, lvl=[0.95])
       print('Upper limit on sigma_log10_A at 95% credibility: ', yy[evobj.mask[1]][lvl[0]])
       mask_fill = (yy[evobj.mask[1]] >= 0) * (yy[evobj.mask[1]] <= yy[evobj.mask[1]][lvl[0]])
-      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color='#90D5EC')
+      plt.fill_between(yy[evobj.mask[1]], sig_marg_over_mu_z, where=mask_fill, color=color_sequence[-1])
       plt.axvline(yy[evobj.mask[1]][lvl[0]],linestyle='--',linewidth=0.5,color='black')
     axes.set_xlabel('$\sigma_{\log_{10}A}$', fontdict=font)
     axes.set_ylabel('Marginalized posterior', fontdict=font)
