@@ -36,7 +36,7 @@ import bilby
 
 from enterprise_warp import enterprise_warp, bilby_warp, results
 
-import ppta_dr2_models
+import epta_models
 
 import hierarchical_models as hm
 import importance_sampling as im
@@ -86,7 +86,7 @@ def get_continuous_cmap(hex_list, float_list=None):
 
 opts = hm.parse_commandline()
 
-custom = ppta_dr2_models.PPTADR2Models
+custom = epta_models.EPTAModels
 configuration = hm.HierarchicalInferenceParams
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
 opts.exclude = params.exclude
@@ -196,8 +196,6 @@ ref_gamma = 13/3 # simulation and data
 ref_sigma_gamma = 0.
 
 lims_2d_gam = [[2,6],[0.02004008, 2.0]]
-
-import ipdb; ipdb.set_trace()
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)
