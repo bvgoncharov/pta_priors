@@ -107,7 +107,7 @@ for ii, chain in enumerate(hr.chains):
           ', '.join([key+' > '+val for key, val in rename_dict.items()]))
     hr.chains[ii] = chain.rename(columns=rename_dict)
 
-n_psr = 45 # 26 # total number of pulsars (to-do: get this from parameters)
+n_psr = 25 # 26 # total number of pulsars (to-do: get this from parameters)
 print('\n[Warning!] By-hand specification of a total number of pulsar is needed! Current n_psr = ', n_psr, '\n')
 
 # Making opts from hierarchical_models compatible with enterprise_warp
@@ -196,6 +196,8 @@ ref_gamma = 13/3 # simulation and data
 ref_sigma_gamma = 0.
 
 lims_2d_gam = [[2,6],[0.02004008, 2.0]]
+
+import ipdb; ipdb.set_trace()
 
 if 'mu_lg_A' in hp_priors.keys() and 'sig_lg_A' in hp_priors.keys():
   xx = np.linspace(hp_priors['mu_lg_A'].minimum,hp_priors['mu_lg_A'].maximum,params.grid_size)

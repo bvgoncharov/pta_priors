@@ -666,6 +666,14 @@ def parse_commandline():
                     help="Here only for compatibility, set as 2.",
                     default=2, type=int)
 
+  parser.add_option("-x", "--extra_model_terms", \
+                    help="Extra noise terms to add to the .json noise model \
+                          file, a string that will be converted to dict. \
+                          E.g. {'J0437-4715': {'system_noise': \
+                          'CPSR2_20CM'}}. Extra terms are applied either on \
+                          the only model, or the second model.", \
+                    default='None', type=str)
+
   opts, args = parser.parse_args()
 
   return opts
