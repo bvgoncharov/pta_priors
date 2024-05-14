@@ -5,7 +5,7 @@
 #SBATCH --time=15:00
 #SBATCH --mem-per-cpu=6G
 #SBATCH --tmp=6G
-#SBATCH --array=1-499
+#SBATCH --array=499-499
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]
