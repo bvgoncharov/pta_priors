@@ -18,4 +18,4 @@ export OMP_NUM_THREADS=1
 
 srun echo $TEMPO2
 srun echo $TEMPO2_CLOCK_DIR
-srun singularity exec --bind "/fred/oz031/epta_code_image/image_content/:$HOME" /fred/oz031/epta_code_image/EPTA_ENTERPRISE.sif python3 /home/bgonchar/pta_gwb_priors/analytical_importance.py --result "/home/bgonchar/epta_dr3/params/epta_dr3_trim_snall_cpfg_to_recycle_20230403.dat" --target "/home/bgonchar/epta_dr3/params/epta_dr3_trim_snall_cpfg_to_recycle_20230403.dat" --prfile "/home/bgonchar/pta_gwb_priors/params/epta_dr2_is_rn_set_all_cppropl_20230316.dat" --n_grid_iter 1000 --save_iterations $SLURM_ARRAY_TASK_ID
+srun singularity exec --bind "/fred/oz031/epta_code_image/image_content/:$HOME" /fred/oz031/epta_code_image/EPTA_ENTERPRISE.sif python3 /home/bgonchar/pta_gwb_priors/analytical_importance.py --result "/home/bgonchar/pta_gwb_priors/params/single_pulsar_analyses/epta_dr3_trim_snall_cpfg_to_recycle_20230403.dat" --target "/home/bgonchar/pta_gwb_priors/params/single_pulsar_analyses/epta_dr3_trim_snall_cpfg_to_recycle_20230403.dat" --prfile "/home/bgonchar/pta_gwb_priors/params/epta_dr2_is_rn_set_all_cppropl_20230316.dat" --n_grid_iter 1000 --save_iterations $SLURM_ARRAY_TASK_ID

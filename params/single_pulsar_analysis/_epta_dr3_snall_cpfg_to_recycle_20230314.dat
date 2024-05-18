@@ -1,0 +1,14 @@
+paramfile_label: rcl_cpfg
+datadir: /fred/oz031/epta_code_image/image_content/epta_dr3_202303/GWB-EPTA-DR2_v1.3.pkl
+out: /fred/oz031/epta_code_image/image_content/epta_dr3_out/
+overwrite: True
+array_analysis: False
+sampler: dynesty
+nlive: 1000
+dlogz: 0.05
+efac: -1
+equad: -1
+ecorr: -1
+noisefiles: /fred/oz031/epta_code_image/image_content/epta_dr3/noisefiles/
+{0}
+noise_model_file: /fred/oz031/epta_code_image/image_content/epta_dr3/noisemodels/epta_20230314.json
