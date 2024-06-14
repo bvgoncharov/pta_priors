@@ -1,0 +1,1 @@
+White noise parameter estimation had "sampler stuck" problem on some pulsars, NANOGrav values for white noise parameters were adopted instead. The pulsars experiencing this issue differed between Tempo2 and PINT timing packages, the problem can also be solved by employing a nested sampler instead of PTMCMCSampler.

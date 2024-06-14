@@ -1,0 +1,10 @@
+{
+    "model_name": "20231215_vanilla",
+    "universal": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "common_signals": {}
+}

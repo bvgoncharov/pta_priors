@@ -1,0 +1,407 @@
+{
+    "model_name": "20220823_vanilla_dips",
+    "universal": {},
+    "common_signals": {},
+    "B1855+09": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "B1937+21": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "B1953+29": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0023+0923": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0030+0451": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0406+3039": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0437-4715": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs",
+	"j0437_event": "exp_dip"
+    },
+    "J0509+0856": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0557+1551": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0605+3757": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0610-2100": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0613-0200": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0614-3329": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0636+5128": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0645+5158": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0709+0458": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0740+6620": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J0931-1902": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1012+5307": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1022+1001": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1024-0719": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1125+7819": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1312+0051": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1453+1902": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1455-3330": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1600-3053": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1614-2230": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1630+3734": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1640+2224": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1643-1224": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs",
+        "j1643_event": "exp_dip"
+    },
+    "J1705-1903": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs",
+        "j1643_event": "exp_dip"
+    },
+    "J1713+0747": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs",
+        "j1713_event_1": "exp_dip",
+        "j1713_event_2": "exp_dip"
+    },
+    "J1719-1438": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1730-2304": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1738+0333": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1741+1351": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1744-1134": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1745+1017": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1747-4036": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1751-2857": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1802-2124": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1811-2405": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1832-0836": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1843-1113": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1853+1303": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1903+0327": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1909-3744": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1910+1256": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1911+1347": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1918-0642": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1923+2515": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1944+0907": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J1946+3417": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2010-1323": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2017+0603": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2033+1734": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2043+1711": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2124-3358": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2145-0750": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs",
+        "j2145_event": "exp_dip"
+    },
+    "J2214+3000": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2229+2643": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2234+0611": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2234+0944": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2302+4442": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2317+1439": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    },
+    "J2322+2057": {
+        "efac": "by_backend",
+        "equad": "by_backend",
+        "ecorr": "by_backend",
+        "spin_noise": "powerlaw_30_nfreqs"
+    }
+}

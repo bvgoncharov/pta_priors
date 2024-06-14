@@ -1,5 +1,10 @@
 #!/bin/python
 
+# If you use a singularity container without enterprise_warp, use this:
+import sys
+sys.path.insert(0,'/home/bgonchar/enterprise_warp/')
+# Otherwise, delete it and make sure you have enterprise_warp installed.
+
 import pandas as pd
 import numpy as np
 import sys
@@ -11,7 +16,7 @@ from enterprise_warp import bilby_warp
 from enterprise_warp.enterprise_warp import get_noise_dict
 from enterprise_extensions import hypermodel
 
-import ppta_dr2_models
+import models
 
 # ========== This is to replace enterprise_warp.bilby_warp function ========== #
 def get_bilby_prior_dict(pta):
@@ -97,7 +102,7 @@ class BilbyKDE(bilby.core.prior.Prior):
 
 opts = enterprise_warp.parse_commandline()
 
-custom = ppta_dr2_models.PPTADR2Models
+custom = models.NANOGRAVModels
 
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=custom)
 pta = enterprise_warp.init_pta(params)
@@ -118,7 +123,7 @@ if params.sampler == 'ptmcmcsampler':
       covm = np.array(identity_covm_df)
     else:
       covm = None
-    sampler = super_model.setup_sampler(resume=True, outdir=params.output_dir, initial_cov=covm)
+    sampler = super_model.setup_sampler(resume=True, outdir=params.output_dir)#, initial_cov=covm)
     N = params.nsamp
     x0 = super_model.initial_sample()
     try:
@@ -148,7 +153,7 @@ if params.sampler == 'ptmcmcsampler':
              opts.mpi_regime to 2 and enjoy the speed!')
       exit()
 else:
-    #priors = bilby_warp.get_bilby_prior_dict(pta[0])
+    priors = bilby_warp.get_bilby_prior_dict(pta[0])
 
     # Special handling of truncated Normal priors
     # (because they do not yet exist in enterprise)
@@ -160,7 +165,7 @@ else:
     #    pta[0].params[ii].prior._defaults['max'] = \
     #                      float(param._typename.split(',')[3])
 
-    priors = get_bilby_prior_dict(pta[0])
+    #priors = get_bilby_prior_dict(pta[0])
     for pkey, prior in priors.items():
       if type(prior) == bilby.core.prior.analytical.Normal:
         if 'gamma' in pkey:
@@ -173,14 +178,10 @@ else:
     parameters = dict.fromkeys(priors.keys())
     likelihood = bilby_warp.PTABilbyLikelihood(pta[0],parameters)
     label = os.path.basename(os.path.normpath(params.out))
-    if opts.mpi_regime != 1:
-      bilby.run_sampler(likelihood=likelihood, priors=priors,
+
+    bilby.run_sampler(likelihood=likelihood, priors=priors,
                         outdir=params.output_dir, label=params.label,
                         sampler=params.sampler, **params.sampler_kwargs)
-    else:
-      print('Preparations for the MPI run are complete - now set \
-             opts.mpi_regime to 2 and enjoy the speed!')
-      exit()
 
 with open(params.output_dir + "completed.txt", "a") as myfile:
   myfile.write("completed\n")

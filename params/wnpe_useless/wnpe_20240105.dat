@@ -1,0 +1,13 @@
+paramfile_label: wnpe
+datadir: /home/bgonchar/pta_gwb_priors/data/ng15/
+out: /home/bgonchar/out_pta_gwb_priors/ng15_20240105/
+overwrite: True
+array_analysis: False
+sampler: ptmcmcsampler
+SCAMweight: 30
+AMweight: 15
+DEweight: 50
+nsamp: 1000000
+tm: fast
+{0}
+noise_model_file: /home/bgonchar/pta_gwb_priors/data/ng15/noisemodels/test_vanilla_20231215.json
