@@ -13,6 +13,8 @@ singularity exec --bind "/fred/oz031/epta_code_image/image_content/:$HOME" /fred
 When all iterations are saved, run the same command without --save_iterations 0 to proceed to plotting.
 """
 import os
+import sys
+sys.path.insert(0, "/home/celestialsapien/enterprise_warp-dev")
 import copy
 import time
 import tqdm
@@ -183,7 +185,7 @@ if not os.path.exists(outdir + 'likelihood_on_a_grid.npy'):
   is_likelihood = im.__dict__[params.importance_likelihood](hr.chains, obj_likelihoods_targ, sp, hr.log_zs, max_samples=params.max_samples_from_measurement, stl_file=outdir+'precomp_unmarg_targ_lnl.npy', grid_size=params.grid_size, save_iterations=opts.save_iterations, suffix=params.par_suffix, parname=params.parname, qc_range=params.qc_range) #sp, hr.log_zs, max_samples=2)
 
 save_publ_plots = True
-overplot_publ_plots = '/home/bgonchar/epta_dr3_out/20230403_epta_trim_trim_rcl_cpfg/is_rn_all_20230316/' #None #'/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_all_20220204/' # '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_xg3_20220112/' # dir or None
+overplot_publ_plots = '/home/celestialsapien/epta_dr2_out/20230314_epta_trim_trim_rcl_cpfg/is_rn_all_20230316/' #None #'/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_all_20220204/' # '/fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/20210125_snall_cpl_fixgam_30_nf_rcl_cpfg/is_rn_xg3_20220112/' # dir or None
 
 #ref_log10_A = -13.3 # simulation
 #ref_log10_A = -13.8 # simulation for comments
@@ -842,4 +844,4 @@ elif 'gw_log10_A' in hp_priors.keys():
     exit()
   pass
 
-import ipdb; ipdb.set_trace()
+# import ipdb; ipdb.set_trace()

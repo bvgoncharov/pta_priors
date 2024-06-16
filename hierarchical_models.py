@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, "/home/celestialsapien/enterprise_warp-dev")
 import optparse
 import numpy as np
 from matplotlib import pyplot as plt
@@ -510,9 +512,10 @@ class HyperResult(results.BilbyWarpResult):
     log10_As = self.result.posterior[self.suffix+'_log10_A']
     gammas = self.result.posterior[self.suffix+'_gamma']
     psr = self.psr_dir.split('_')[1]
+    # import ipdb; ipdb.set_trace();
     flow = 1./pm.PulsarEqualPSDLines().tobs[psr]*const.fyr
     if self.suffix=='red_noise':
-      nf = float(self.params.models[0].noisemodel['J0437-4715']\
+      nf = float(self.params.models[0].noisemodel['J1022+1001']\
                                                  ['spin_noise'].split('_')[1])
       fhigh = flow * nf
     else:
