@@ -21,6 +21,7 @@ configuration = hm.HierarchicalInferenceParams
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
 
 hr = hm.HyperResult(opts, suffix=params.par_suffix)
+#import ipdb; ipdb.set_trace()
 
 hr.main_pipeline()
 
