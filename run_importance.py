@@ -14,7 +14,7 @@ import bilby
 
 from enterprise_warp import enterprise_warp, bilby_warp, results
 
-import ppta_dr2_models
+import epta_models
 
 import hierarchical_models as hm
 import importance_sampling as im
@@ -22,7 +22,7 @@ import importance_sampling as im
 n_psr = 26 # total number of pulsars (to-do: get this from parameters)
 opts = hm.parse_commandline()
 
-custom = ppta_dr2_models.PPTADR2Models
+custom = epta_models.EPTAModels
 configuration = hm.HierarchicalInferenceParams
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=configuration)
 opts.exclude = params.exclude

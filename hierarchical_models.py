@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, "/home/celestialsapien/enterprise_warp-dev")
 import optparse
 import numpy as np
 from matplotlib import pyplot as plt
@@ -8,6 +10,8 @@ from bilby.core.prior import Uniform, Normal, DeltaFunction
 from enterprise_warp.enterprise_models import StandardModels
 import enterprise.constants as const
 from enterprise_warp import results
+import enterprise.constants as const
+
 
 import psd_models as pm
 
@@ -455,7 +459,7 @@ class HierarchicalInferenceParams(StandardModels):
       "sig_lg_A_2": [0., 10.],
       "mu_gam_2": [4.11, 0.52],
       "sig_gam_2": [0., 10.],
-      "rho_cov_2": [0., 1.],
+      "rho_cov_2": [-1., 1.],
       "low_lg_A": [-20., -10.],
       "high_lg_A": [-20., -10.],
       "low_gam": [0., 10.],
@@ -482,6 +486,7 @@ class HyperResult(results.BilbyWarpResult):
     self.log_zs = []
 
   def main_pipeline(self):
+    
     for psr_dir in sorted(self.psr_dirs):
       if psr_dir.split('_')[1] in self.opts.exclude:
         print('Excluding pulsar ', psr_dir)
@@ -506,17 +511,36 @@ class HyperResult(results.BilbyWarpResult):
     if self.opts.plots:
       self.make_plots_and_exit()
 
-  def convert_log10_A_to_pow(self):
+
+  def convert_log10_A_to_pow(self, cadence=60):
+    """
+    cadence: a default cadence to determine high frequency of red PSD
+    	if not given in the noise model file for a given pulsar term.
+    """
     log10_As = self.result.posterior[self.suffix+'_log10_A']
+    
     gammas = self.result.posterior[self.suffix+'_gamma']
+
     psr = self.psr_dir.split('_')[1]
+
+    noise_name_dict = {
+      "red_noise": "spin_noise",
+      "dm_gp": "dm_noise"
+    }
     flow = 1./pm.PulsarEqualPSDLines().tobs[psr]*const.fyr
-    if self.suffix=='red_noise':
-      nf = float(self.params.models[0].noisemodel['J0437-4715']\
-                                                 ['spin_noise'].split('_')[1])
-      fhigh = flow * nf
+
+    psr_noise_model = self.params.models[0].noisemodel[psr]
+    psr_noise_term = psr_noise_model[noise_name_dict[self.suffix]]
+    if len(psr_noise_term.split('_'))==1:
+      tobs = 1./flow
+      nf = int(np.round((1./cadence/const.day - 1/tobs)/(1/tobs)))
+    elif len(psr_noise_term.split('_'))==3:
+      nf = float(psr_noise_term.split('_')[1])
     else:
-      raise ValueError('hierarchical_models.py: Please modify for other cases')
+      raise ValueError('A new special case of the frequency bin handling is required')
+    
+    fhigh = flow * nf
+
     self.result.posterior[self.suffix+'_pow'] = \
                           pm.powerlaw_power(log10_As, gammas, flow, fhigh)
 

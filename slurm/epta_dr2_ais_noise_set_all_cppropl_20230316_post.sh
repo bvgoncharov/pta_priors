@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=ep_ais_rn_all_cppropl_20230316
-#SBATCH --output=/fred/oz031/epta_code_image/logs_epta_dr2/ppta_ais_rn_all_cppropl_20220204_%A_%a.out
+#SBATCH --output=/fred/oz031/epta_code_image/logs_epta_dr2/ppta_ais_rn_all_cppropl_20230316_post_%A_%a.out
 #SBATCH --ntasks=1
-#SBATCH --time=15:00
+#SBATCH --time=0-2
 #SBATCH --mem-per-cpu=6G
 #SBATCH --tmp=6G
-#SBATCH --array=499-499
+#SBATCH --array=5-249
 
 pyv="$(python -c 'import sys; print(sys.version_info[0])')"
 if [ "$pyv" == 2 ]

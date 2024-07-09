@@ -11,7 +11,7 @@ from enterprise_warp import bilby_warp
 from enterprise_warp.enterprise_warp import get_noise_dict
 from enterprise_extensions import hypermodel
 
-import ppta_dr2_models
+import epta_models
 
 class GammaConstraint(object):
 
@@ -35,7 +35,7 @@ class GammaConstraint(object):
 
 opts = enterprise_warp.parse_commandline()
 
-custom = ppta_dr2_models.PPTADR2Models
+custom = epta_models.EPTAModels
 
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=custom)
 pta = enterprise_warp.init_pta(params)
