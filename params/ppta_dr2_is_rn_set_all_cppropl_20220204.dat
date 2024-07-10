@@ -1,0 +1,16 @@
+paramfile_label: is_rn_all_20220204
+par_suffix: gw
+importance_likelihood: ImportanceLikelihoodNoise
+max_samples_from_measurement: 2700
+grid_size: 500
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+model: Norm_trunc_lg_A
+mu_lg_A: -20. -10.
+sig_lg_A: 0. 10.
+low_lg_A: -20.0
+high_lg_A: -10.0

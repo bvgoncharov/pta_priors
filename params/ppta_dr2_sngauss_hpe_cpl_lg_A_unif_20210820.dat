@@ -1,0 +1,12 @@
+paramfile_label: sngauss_hpe_cpl_lgA_unif_20210820
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+max_samples_from_measurement: 1000
+model: Unif_lg_A
+par_suffix: gw
+low_lg_A: -20. -10.
+high_lg_A: -20. -10.

@@ -1,0 +1,12 @@
+paramfile_label: is_signal_xg1_20211210
+exclude: J0437-4715 J0711-6830 J1643-1224
+max_samples_from_measurement: 10000
+grid_size: 300
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+model: Unif_lg_A_cp
+gwb_lgA: -20.0 -6.0
