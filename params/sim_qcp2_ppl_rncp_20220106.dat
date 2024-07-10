@@ -1,0 +1,11 @@
+paramfile_label: sim_qcp2_ppl_rncp
+datadir: /fred/oz031/pta_gwb_priors_out/sim_data/qcp2_220103_032316/
+out: /fred/oz031/pta_gwb_priors_out/dr2_timing_20200607/
+overwrite: True
+array_analysis: False
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+boost_posterior: 30
+{0}
+noise_model_file: /fred/oz031/pta_gwb_priors_out/sim_data/wnpe_universal_cprn_20220106.json

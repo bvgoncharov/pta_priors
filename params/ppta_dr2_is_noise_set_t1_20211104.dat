@@ -1,0 +1,17 @@
+paramfile_label: is_noise_t3_20211104
+par_suffix: gw
+importance_likelihood: ImportanceLikelihoodNoise
+exclude: J0437-4715 J0613-0200 J0711-6830 J1017-7156 J1022+1001 J1024-0719 J1045-4509 J1125-6014 J1446-4701 J1545-4550 J1600-3053 J1603-7202 J1643-1224 J1713+0747 J1730-2304 J1732-5049 J1744-1134 J1824-2452A J1832-0836 J1857+0943 J1909-3744 J1939+2134 J2124-3358
+max_samples_from_measurement: 100
+grid_size: 100
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+model: Norm_trunc_lg_A
+mu_lg_A: -20. -10.
+sig_lg_A: 0. 10.
+low_lg_A: -20.0
+high_lg_A: -10.0

@@ -11,7 +11,7 @@ from enterprise_warp import bilby_warp
 from enterprise_warp.enterprise_warp import get_noise_dict
 from enterprise_extensions import hypermodel
 
-import epta_models
+import ppta_dr2_models
 
 # ========== This is to replace enterprise_warp.bilby_warp function ========== #
 def get_bilby_prior_dict(pta):
@@ -97,7 +97,7 @@ class BilbyKDE(bilby.core.prior.Prior):
 
 opts = enterprise_warp.parse_commandline()
 
-custom = epta_models.EPTAModels
+custom = ppta_dr2_models.PPTADR2Models
 
 params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=custom)
 pta = enterprise_warp.init_pta(params)

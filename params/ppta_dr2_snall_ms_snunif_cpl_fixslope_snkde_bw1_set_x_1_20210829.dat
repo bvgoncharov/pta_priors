@@ -1,0 +1,20 @@
+paramfile_label: x1_snkde_bw1
+datadir: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/
+out: /fred/oz002/bgoncharov/pta_gwb_priors_out/dr2_timing_20200607/
+overwrite: True
+array_analysis: True
+psrlist: /home/bgonchar/pta_gwb_priors/params/pulsar_set_x_1.dat
+sampler: ptmcmcsampler
+SCAMweight: 30
+AMweight: 15
+DEweight: 50
+nsamp: 10000000
+efac: -1
+equad: -1
+ecorr: -1
+noisefiles: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/start_noisefiles/snall/
+kdesn_file: /fred/oz031/pta_gwb_priors_out/kdesn_bw1.pkl
+{0}
+noise_model_file: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/noise_models/ppta_dr2_snall_common_pl_fixedgamma_30_nf_20210125.json
+{1}
+noise_model_file: /home/bgonchar/pta_gwb_priors/data/dr2_timing_20200607/noise_models/ppta_dr2_snall_snkde_bw1_20210828.json

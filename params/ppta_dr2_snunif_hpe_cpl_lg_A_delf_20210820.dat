@@ -1,0 +1,11 @@
+paramfile_label: snunif_hpe_cpl_lgA_delf_20210820
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: pypolychord
+nlive: 1000
+precision_criterion: 0.005
+max_samples_from_measurement: 1000
+model: DeltaFunc_lg_A
+par_suffix: gw
+lg_A: -20. -10.
