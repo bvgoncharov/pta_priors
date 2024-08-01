@@ -42,12 +42,10 @@ hp_likelihood = bilby.hyper.likelihood.HyperparameterLikelihood(
 
 hp_priors = hm.__dict__['hp_'+params.model](params)
 
+# import ipdb; ipdb.set_trace()
+
 result = bilby.core.sampler.run_sampler(
      likelihood=hp_likelihood, priors=hp_priors,
      use_ratio=False, outdir=outdir, label=params.paramfile_label, clean=True, parname=params.parname, sampler=params.sampler, **params.sampler_kwargs)
 
 result.plot_corner()
-
-# hp_likelihood.parameters['lg_A'] = -30.0
-# hp_likelihood.parameters['gam'] = 0.
-# hp_likelihood.log_likelihood()
