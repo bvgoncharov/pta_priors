@@ -1,0 +1,14 @@
+paramfile_label: trim_rcl_cpfg
+datadir: /home/celestialsapien/epta_dr3_202406/new_sys_v1.3_trim.pkl
+out: /home/celestialsapien/epta_dr3_out/
+overwrite: True
+array_analysis: False
+sampler: dynesty
+nlive: 1000
+dlogz: 0.1
+efac: -1
+equad: -1
+ecorr: -1
+noisefiles: /home/celestialsapien/epta_dr3/noisefiles_trim/
+{0}
+noise_model_file: /home/celestialsapien/epta_dr3/noisemodels/epta_trim_20240616.json
