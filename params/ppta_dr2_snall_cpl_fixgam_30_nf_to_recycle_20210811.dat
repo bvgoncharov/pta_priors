@@ -1,0 +1,14 @@
+paramfile_label: rcl
+datadir: /home/celestialsapien/epta_dr3_out/GWB-EPTA-DR2_v1.3.pkl
+out: /home/celestialsapien/epta_dr3_out/
+overwrite: True
+array_analysis: False
+sampler: dynesty
+nlive: 1000
+precision_criterion: 0.005
+efac: -1
+equad: -1
+ecorr: -1
+noisefiles: /home/celestialsapien/epta_dr3/noisefiles
+{0}
+noise_model_file: /home/celestialsapien/epta_dr3/noisemodels/ppta_dr2_snall_common_pl_fixedgamma_30_nf_20210125.json
