@@ -1,0 +1,15 @@
+paramfile_label: Ngauss_dm_nc_new_2024
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: dynesty
+nlive: 1000
+# precision_criterion: 0.005
+max_samples_from_measurement: 1000
+model: Norm_prod_lg_A_gamma
+par_suffix: dm_gp
+parname: gamma
+low_gam: 0.
+high_gam: 10.
+low_lg_A: -20.
+high_lg_A: -10.

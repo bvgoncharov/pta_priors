@@ -1,0 +1,29 @@
+paramfile_label: DMixNgauss_2_sn_full_2024
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: dynesty
+nlive: 1000
+# precision_criterion: 0.005
+max_samples_from_measurement: 10000
+model: Mix_double_norm_biv_trunc
+par_suffix: red_noise
+parname: gamma
+low_gam: 0.
+high_gam: 10.
+low_lg_A: -20.
+high_lg_A: -10.
+mu_lg_A: -20. -10.
+sig_lg_A: 0. 10.
+mu_gam: 0. 10.
+sig_gam: 0. 10.
+rho_cov: -1. 1.
+mu_lg_A_2: -16. 2. 
+mu_lg_A_2_type: normal
+sig_lg_A_2: 5. 3.
+sig_lg_A_2_type: normal
+mu_gam_2: 6. 3. 
+mu_gam_2_type: normal
+sig_gam_2: 5. 3.
+sig_gam_2_type: normal
+rho_cov_2: -1. 1.

@@ -1,0 +1,15 @@
+paramfile_label: MixNgauss_sn_new_2024
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: dynesty
+nlive: 10000
+# precision_criterion: 0.005
+max_samples_from_measurement: 1000
+model: Mix_norm_biv_trunc_and_unif
+par_suffix: red_noise
+parname: gamma
+low_gam: 0.
+high_gam: 10.
+low_lg_A: -20.
+high_lg_A: -10. 

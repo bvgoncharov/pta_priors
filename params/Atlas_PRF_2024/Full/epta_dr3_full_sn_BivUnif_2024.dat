@@ -1,0 +1,15 @@
+paramfile_label: changed_values_Bunif_sn_full_2024
+out: n/a
+datadir: n/a
+array_analysis: n/a
+sampler: dynesty
+nlive: 1000
+# precision_criterion: 0.005
+max_samples_from_measurement: 1000
+model: Unif_prod_lg_A_gamma
+par_suffix: red_noise
+parname: gamma
+low_gam: 0. 3. 
+high_gam: 1. 7.
+low_lg_A: -20. -13.
+high_lg_A: -14. -11.
