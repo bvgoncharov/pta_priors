@@ -92,7 +92,7 @@ If you make use of the code, please cite [arXiv:2409.03661](https://arxiv.org/ab
 > &nbsp;&nbsp;&nbsp;&nbsp;adsurl = {[https://ui.adsabs.harvard.edu/abs/2024arXiv240903661G](https://ui.adsabs.harvard.edu/abs/2024arXiv240903661G)},\
 > &nbsp;&nbsp;&nbsp;&nbsp;adsnote = {Provided by the SAO/NASA Astrophysics Data System}\
 > }
-<details>
+</details>
 
 If you additionally make use of `quasicommon.py`, please cite [arXiv:2206.03766](https://arxiv.org/abs/2206.03766):
 <details>
@@ -115,4 +115,4 @@ If you additionally make use of `quasicommon.py`, please cite [arXiv:2206.03766]
 > &nbsp;&nbsp;&nbsp;&nbsp;adsurl = {[https://ui.adsabs.harvard.edu/abs/2022ApJ...932L..22G](https://ui.adsabs.harvard.edu/abs/2022ApJ...932L..22G)},\
 > &nbsp;&nbsp;&nbsp;&nbsp;adsnote = {Provided by the SAO/NASA Astrophysics Data System}\
 > }
-<details>
+</details>
