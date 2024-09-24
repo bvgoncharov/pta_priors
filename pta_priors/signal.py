@@ -72,9 +72,16 @@ class HierarchicalHyperModel(hypermodel.HyperModel):
                 print(f'Initial hyperparameters for model {mm}, parameter {p_code}: {self.initial_hyperparameters[mm][p_code]}')
 
         if hyperprior_samples is None:
+
+            # Ensure default hierarchical parameters are present
+            required_parameters = {'red_noise_log10_A', 'red_noise_gamma'}
+            provided_params = set(hierarchical_parameters.keys())
+            if provided_params != required_params:
+                raise ValueError(f"When hyperprior_samples is None, hierarchical_parameters must be exactly {required_params}. Provided: {provided_params}")
+
             self.hyperprior_sampler = {
-                np: samples_truncnorm_based_on_unif(self.models[0].params, noise_parameter=np, n_samples=n_hyperprior_samples)
-                for np in hierarchical_parameters.keys()
+                hp: samples_truncnorm_based_on_unif(self.models[0].params, noise_parameter=np, n_samples=n_hyperprior_samples)
+                for hp in hierarchical_parameters.keys()
             }
             self.n_hyperprior_samples = n_hyperprior_samples
         else:
