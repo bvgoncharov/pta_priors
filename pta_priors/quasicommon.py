@@ -20,26 +20,30 @@ Citation:
     arXiv: https://arxiv.org/abs/2206.03766
 """
 
-import os
-import copy
-import time
-import tqdm
-#import pickle
-import numpy as np
-from scipy import interpolate
-from scipy.interpolate import griddata
-from scipy.integrate import simps
-from mpmath import mp
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
+import warnings
+try:
+    import os
+    import copy
+    import time
+    import tqdm
+    #import pickle
+    import numpy as np
+    from scipy import interpolate
+    from scipy.interpolate import griddata
+    from scipy.integrate import simps
+    from mpmath import mp
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
+    
+    import bilby
+    
+    from enterprise_warp import enterprise_warp, bilby_warp, results
+except:
+    warnings.warn('Module pta_priors.quasicommon misses required packages')
 
-import bilby
-
-from enterprise_warp import enterprise_warp, bilby_warp, results
-
-import hierarchical_models as hm
-import importance_sampling as im
+from .utils import hierarchical_models as hm
+from .utils import importance_sampling as im
 
 plt.rcParams.update({
   "text.usetex": True,

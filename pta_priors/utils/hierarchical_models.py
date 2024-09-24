@@ -1,12 +1,11 @@
 import optparse
 import numpy as np
-from matplotlib import pyplot as plt
+
 from scipy.stats import multivariate_normal
 from scipy.stats import norm as scipy_norm
 from bilby.core.prior import Uniform, Normal, DeltaFunction
 
 from enterprise_warp.enterprise_models import StandardModels
-import enterprise.constants as const
 from enterprise_warp import results
 
 # ---------------------------------------------------------------------------- #

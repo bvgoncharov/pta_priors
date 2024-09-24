@@ -8,7 +8,6 @@ import numpy as np
 
 from enterprise_warp import results
 
-from bilby.hyper.model import Model
 from bilby.core.likelihood import Likelihood
 
 class ImportanceLikelihoodSignal(Likelihood):
@@ -24,9 +23,6 @@ class ImportanceLikelihoodSignal(Likelihood):
                log_evidences, max_samples=1e100, post_draw_rs=777,
                stl_file="", grid_size=300, save_iterations=-1, suffix='gw',
                parname='log10_A', qc_range=[-20.,-10.]):
-
-    #if not isinstance(prior, Model):
-    #  prior = Model([prior])
 
     super(ImportanceLikelihoodSignal, self).__init__({})#prior.parameters)
 
