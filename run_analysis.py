@@ -123,7 +123,7 @@ if params.sampler == 'ptmcmcsampler':
       covm = np.array(identity_covm_df)
     else:
       covm = None
-    sampler = super_model.setup_sampler(resume=True, outdir=params.output_dir)#, initial_cov=covm)
+    sampler = super_model.setup_sampler(outdir=params.output_dir)#, initial_cov=covm) resume=True,
     N = params.nsamp
     x0 = super_model.initial_sample()
     try:
@@ -146,12 +146,9 @@ if params.sampler == 'ptmcmcsampler':
                                   if key in ptmcmc_sample_kwargs}
     del upd_sample_kwargs['Niter']
     del upd_sample_kwargs['p0']
-    if opts.mpi_regime != 1:
-      sampler.sample(x0, N, **upd_sample_kwargs)
-    else:
-      print('Preparations for the MPI run are complete - now set \
-             opts.mpi_regime to 2 and enjoy the speed!')
-      exit()
+
+    sampler.sample(x0, N, **upd_sample_kwargs)
+
 else:
     priors = bilby_warp.get_bilby_prior_dict(pta[0])
 

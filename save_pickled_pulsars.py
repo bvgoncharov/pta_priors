@@ -1,0 +1,115 @@
+#!/bin/python
+
+# If you use a singularity container without enterprise_warp, use this:
+import sys
+sys.path.insert(0,'/home/bgonchar/enterprise_warp/')
+# Otherwise, delete it and make sure you have enterprise_warp installed.
+
+import pandas as pd
+import numpy as np
+import sys
+import os
+import bilby
+import inspect
+from enterprise_warp import enterprise_warp
+from enterprise_warp import bilby_warp
+from enterprise_warp.enterprise_warp import get_noise_dict
+from enterprise_extensions import hypermodel
+
+import models
+
+import pickle
+
+# ========== This is to replace enterprise_warp.bilby_warp function ========== #
+def get_bilby_prior_dict(pta):
+  """
+  Get Bilby parameter dict from Enterprise PTA object.
+  Currently only works with uniform priors.
+
+  Parameters
+  ----------
+  pta: enterprise.signals.signal_base.PTA
+    Enterprise PTA object that contains pulsar data and noise models
+  """
+  priors = dict()
+  for param in pta.params:
+
+    if param.size==None:
+      if param.type=='uniform':
+        #priors[param.name] = bilby.core.prior.Uniform( \
+        #    param._pmin, param._pmax, param.name)
+        priors[param.name] = bilby.core.prior.Uniform( \
+            # param._pmin
+            param.prior._defaults['pmin'], param.prior._defaults['pmax'], \
+            param.name)
+      elif param.type=='normal':
+        #priors[param.name] = bilby.core.prior.Normal( \
+        #    param._mu, param._sigma, param.name)
+        priors[param.name] = bilby.core.prior.Normal( \
+            param.prior._defaults['mu'], param.prior._defaults['sigma'], \
+            param.name)
+      elif param.type=='truncatednormal':
+        priors[param.name] = bilby.core.prior.TruncatedGaussian( \
+            param.prior._defaults['mu'], param.prior._defaults['sigma'], \
+            param.prior._defaults['minv'], param.prior._defaults['maxv'], \
+            param.name)
+      else:
+        raise ValueError('Unknown prior type for translation into Bilby. \
+                          Known types: Normal; Uniform.')
+
+    else:
+      if param.name=='jup_orb_elements' and param.type=='uniform':
+        for ii in range(param.size):
+          priors[param.name+'_'+str(ii)] = bilby.core.prior.Uniform( \
+              -0.05, 0.05, param.name+'_'+str(ii))
+      elif param.type=='kde':
+        priors[param.name] = BilbyKDE(param)
+      else:
+        raise ValueError('Unknown prior with non-unit size for \
+                          translation into Bilby. Known priors: \
+                          of type kde; jup_orb_elements of type Uniform.')
+
+  # Consistency check
+  for key, val in priors.items():
+      if key not in pta.param_names:
+        print('[!] Warning: Bilby\'s ',key,' is not in PTA params:',\
+            pta.param_names)
+
+  return priors
+
+class BilbyKDE(bilby.core.prior.Prior):
+
+    def __init__(self, enterprise_kde_prior, name=None, latex_label=None,
+                 unit=None, boundary=None):
+        super(BilbyKDE, self).__init__(name=name, latex_label=latex_label,
+                                       #minimum=minimum, maximum=maximum, 
+                                       unit=unit, boundary=boundary)
+        self.enterprise_kde_prior = enterprise_kde_prior
+        import ipdb; ipdb.set_trace()
+
+    def rescale(self, val):
+      import ipdb; ipdb.set_trace()
+      return None
+
+    def sample(self, size=None):
+      return self.enterprise_kde_prior.sample()
+
+    def prob(self, val):
+      return self.enterprise_kde_prior.get_pdf(val)
+
+    def ln_prob(self, val):
+      return self.enterprise_kde_prior.get_logpdf(val)
+
+# ============================================================================ #
+
+opts = enterprise_warp.parse_commandline()
+
+custom = models.NANOGRAVModels
+
+params = enterprise_warp.Params(opts.prfile,opts=opts,custom_models_obj=custom)
+pta = enterprise_warp.init_pta(params)
+
+pickle_file = '/home/bgonchar/pta_gwb_priors/data/ng15_psrs.pkl'
+
+with open(pickle_file, 'wb') as file:
+    pickle.dump(params.psrs, file)
