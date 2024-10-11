@@ -56,7 +56,7 @@ hyperprior_samples = {
     # Argument order for TruncatedNormalSampler: mean, std, min, max
     'dm_gp_log10_A': {
         'pmin': parameter.TruncatedNormalSampler(-18., 2., -20., -10., size=n_samp)[np.newaxis, :],
-        'pmax': parameter.TruncatedNormalSampler(-8., 2., -20., -10., size=n_samp)[np.newaxis, :]
+        'pmax': parameter.TruncatedNormalSampler(-12., 2., -20., -10., size=n_samp)[np.newaxis, :]
     },
     'dm_gp_gamma': {
         'pmin': parameter.TruncatedNormalSampler(2., 2., 0., 7., size=n_samp)[np.newaxis, :],
@@ -64,7 +64,7 @@ hyperprior_samples = {
     }
 } 
 
-super_model = HierarchicalHyperModel(pta, hierarchical_parameters=hierarchical_parameters)
+super_model = HierarchicalHyperModel(pta, hierarchical_parameters=hierarchical_parameters, hyperprior_samples=hyperprior_samples)
 
 # Set up the sampler and start sampling.
 ```
@@ -97,6 +97,7 @@ If you make use of the code, please cite [arXiv:2409.03661](https://arxiv.org/ab
 If you additionally make use of `quasicommon.py`, please cite [arXiv:2206.03766](https://arxiv.org/abs/2206.03766):
 <details>
   <summary>Export BibTeX citation</summary>
+
 > @ARTICLE{GoncharovThrane2022,\
 > &nbsp;&nbsp;&nbsp;&nbsp;author = {{Goncharov}, Boris and {Thrane}, Eric and {Shannon}, Ryan M. and {Harms}, Jan and {Bhat}, N.~D. Ramesh and {Hobbs}, George and {Kerr}, Matthew and {Manchester}, Richard N. and {Reardon}, Daniel J. and {Russell}, Christopher J. and {Zhu}, Xing-Jiang and {Zic}, Andrew},\
 > &nbsp;&nbsp;&nbsp;&nbsp;title = "{Consistency of the Parkes Pulsar Timing Array Signal with a Nanohertz Gravitational-wave Background}",\
